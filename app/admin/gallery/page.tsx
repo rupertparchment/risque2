@@ -172,14 +172,20 @@ export default function AdminGalleryPage() {
               </h2>
               
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-                  {error}
+                <div className="bg-red-50 border-2 border-red-500 text-red-700 px-4 py-3 rounded mb-4 font-semibold">
+                  ⚠️ Error: {error}
                 </div>
               )}
               
               {success && (
-                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
-                  {success}
+                <div className="bg-green-50 border-2 border-green-500 text-green-700 px-4 py-3 rounded mb-4 font-semibold">
+                  ✅ {success}
+                </div>
+              )}
+              
+              {isLoading && (
+                <div className="bg-blue-50 border-2 border-blue-500 text-blue-700 px-4 py-3 rounded mb-4 font-semibold">
+                  ⏳ Saving image, please wait...
                 </div>
               )}
               
@@ -284,18 +290,21 @@ export default function AdminGalleryPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  onClick={(e) => {
-                    console.log('Button clicked!')
-                    // Don't prevent default - let form handle it
+                  onClick={() => {
+                    setError('')
+                    setSuccess('')
+                    console.log('Add Image button clicked!')
                   }}
-                  className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50"
+                  className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? 'Saving...' : isEditing ? 'Update Image' : 'Add Image'}
+                  {isLoading ? '⏳ Saving...' : isEditing ? 'Update Image' : 'Add Image'}
                 </button>
                 
-                <div className="text-xs text-gray-500 mt-2">
-                  Tip: Open browser console (F12) to see submission details
-                </div>
+                {isLoading && (
+                  <div className="mt-2 text-sm text-gray-600 text-center">
+                    Please wait while we save your image...
+                  </div>
+                )}
               </form>
             </div>
           </div>
