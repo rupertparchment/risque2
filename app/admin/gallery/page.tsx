@@ -62,11 +62,22 @@ export default function AdminGalleryPage() {
         : '/api/admin/gallery'
       const method = isEditing ? 'PUT' : 'POST'
 
+      // Convert Imgur album/page URLs to direct image URLs
+      let imageUrl = data.imageUrl.trim()
+      if (imageUrl.includes('imgur.com/') && !imageUrl.includes('i.imgur.com')) {
+        // Convert https://imgur.com/xxxxx to https://i.imgur.com/xxxxx.jpg
+        const imgurId = imageUrl.split('imgur.com/')[1]?.split('/')[0]?.split('?')[0]
+        if (imgurId) {
+          imageUrl = `https://i.imgur.com/${imgurId}.jpg`
+          console.log('Converted Imgur URL:', data.imageUrl, '→', imageUrl)
+        }
+      }
+
       // Ensure checkbox value is boolean (checkboxes return string 'on' or undefined)
       const submitData = {
         title: data.title,
         description: data.description || null,
-        imageUrl: data.imageUrl,
+        imageUrl: imageUrl,
         category: data.category || 'interior',
         displayOrder: data.displayOrder ? parseInt(data.displayOrder) : 0,
         isActive: data.isActive === true || data.isActive === 'on' || data.isActive === undefined,
@@ -273,10 +284,18 @@ export default function AdminGalleryPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
+                  onClick={(e) => {
+                    console.log('Button clicked!')
+                    // Don't prevent default - let form handle it
+                  }}
                   className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50"
                 >
                   {isLoading ? 'Saving...' : isEditing ? 'Update Image' : 'Add Image'}
                 </button>
+                
+                <div className="text-xs text-gray-500 mt-2">
+                  Tip: Open browser console (F12) to see submission details
+                </div>
               </form>
             </div>
           </div>
