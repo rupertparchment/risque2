@@ -18,6 +18,7 @@ export default function AdminGalleryPage() {
   const [isEditing, setIsEditing] = useState<GalleryImage | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>('')
+  const [success, setSuccess] = useState<string>('')
 
   useEffect(() => {
     fetchImages()
@@ -41,27 +42,50 @@ export default function AdminGalleryPage() {
 
   const { register, handleSubmit, reset, setValue } = useForm<GalleryImage>()
 
-  const onSubmit = async (data: GalleryImage) => {
+  const onSubmit = async (data: any) => {
     setIsLoading(true)
+    setError('')
+    setSuccess('')
+    
     try {
       const url = isEditing
         ? `/api/admin/gallery/${isEditing.id}`
         : '/api/admin/gallery'
       const method = isEditing ? 'PUT' : 'POST'
 
+      // Ensure checkbox value is boolean (checkboxes return string 'on' or undefined)
+      const submitData = {
+        title: data.title,
+        description: data.description || null,
+        imageUrl: data.imageUrl,
+        category: data.category || 'interior',
+        displayOrder: data.displayOrder ? parseInt(data.displayOrder) : 0,
+        isActive: data.isActive === true || data.isActive === 'on' || data.isActive === undefined,
+      }
+
+      console.log('Submitting:', { url, method, submitData })
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(submitData),
       })
 
+      const result = await response.json()
+      console.log('Response:', { status: response.status, result })
+
       if (response.ok) {
+        setSuccess(isEditing ? 'Image updated successfully!' : 'Image added successfully!')
         fetchImages()
         reset()
         setIsEditing(null)
+        setTimeout(() => setSuccess(''), 3000)
+      } else {
+        setError(result.error || `Failed to save image. Status: ${response.status}`)
       }
     } catch (error) {
       console.error('Failed to save gallery image:', error)
+      setError('Failed to save image. Please check your connection and try again.')
     } finally {
       setIsLoading(false)
     }
@@ -126,6 +150,19 @@ export default function AdminGalleryPage() {
               <h2 className="text-2xl font-bold mb-4">
                 {isEditing ? 'Edit Image' : 'Add New Image'}
               </h2>
+              
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                  {error}
+                </div>
+              )}
+              
+              {success && (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
+                  {success}
+                </div>
+              )}
+              
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -198,7 +235,7 @@ export default function AdminGalleryPage() {
 
                 <div className="flex items-center">
                   <input
-                    {...register('isActive')}
+                    {...register('isActive', { valueAsBoolean: true })}
                     type="checkbox"
                     id="isActive"
                     className="mr-2"
