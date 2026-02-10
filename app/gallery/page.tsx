@@ -3,12 +3,21 @@ import Image from 'next/image'
 
 const prisma = new PrismaClient()
 
+// Make this page dynamic (fetch at runtime, not build time)
+export const dynamic = 'force-dynamic'
+
 async function getGalleryImages() {
-  const images = await prisma.galleryImage.findMany({
-    where: { isActive: true },
-    orderBy: { displayOrder: 'asc' },
-  })
-  return images
+  try {
+    const images = await prisma.galleryImage.findMany({
+      where: { isActive: true },
+      orderBy: { displayOrder: 'asc' },
+    })
+    return images
+  } catch (error) {
+    // Database not set up yet or tables don't exist
+    console.error('Error fetching gallery images:', error)
+    return []
+  }
 }
 
 export default async function GalleryPage() {

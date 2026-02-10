@@ -5,12 +5,21 @@ import { format } from 'date-fns'
 
 const prisma = new PrismaClient()
 
+// Make this page dynamic (fetch at runtime, not build time)
+export const dynamic = 'force-dynamic'
+
 async function getEvents() {
-  const events = await prisma.event.findMany({
-    where: { isActive: true },
-    orderBy: { eventDate: 'asc' },
-  })
-  return events
+  try {
+    const events = await prisma.event.findMany({
+      where: { isActive: true },
+      orderBy: { eventDate: 'asc' },
+    })
+    return events
+  } catch (error) {
+    // Database not set up yet or tables don't exist
+    console.error('Error fetching events:', error)
+    return []
+  }
 }
 
 export default async function EventsPage() {
