@@ -1,11 +1,11 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, Event } from '@prisma/client'
 import Link from 'next/link'
 import Image from 'next/image'
 import { format } from 'date-fns'
 
 const prisma = new PrismaClient()
 
-async function getEvents() {
+async function getEvents(): Promise<Event[]> {
   const events = await prisma.event.findMany({
     where: { isActive: true },
     orderBy: { eventDate: 'asc' },
@@ -30,7 +30,7 @@ export default async function EventsPage() {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map((event) => (
+            {events.map((event: Event) => (
               <div key={event.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
                 {event.flyerImage && (
                   <div className="relative h-64 w-full">

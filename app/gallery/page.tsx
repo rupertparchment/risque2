@@ -1,9 +1,9 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, GalleryImage } from '@prisma/client'
 import Image from 'next/image'
 
 const prisma = new PrismaClient()
 
-async function getGalleryImages() {
+async function getGalleryImages(): Promise<GalleryImage[]> {
   const images = await prisma.galleryImage.findMany({
     where: { isActive: true },
     orderBy: { displayOrder: 'asc' },
@@ -28,7 +28,7 @@ export default async function GalleryPage() {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {images.map((image) => (
+            {images.map((image: GalleryImage) => (
               <div key={image.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
                 <div className="relative h-64 w-full">
                   <Image
