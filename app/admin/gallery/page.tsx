@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import Image from 'next/image'
 
 interface GalleryImage {
   id: string
@@ -18,6 +17,7 @@ export default function AdminGalleryPage() {
   const [images, setImages] = useState<GalleryImage[]>([])
   const [isEditing, setIsEditing] = useState<GalleryImage | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string>('')
 
   useEffect(() => {
     fetchImages()
@@ -25,11 +25,17 @@ export default function AdminGalleryPage() {
 
   const fetchImages = async () => {
     try {
+      setError('')
       const response = await fetch('/api/admin/gallery')
+      if (!response.ok) {
+        throw new Error('Failed to fetch images')
+      }
       const data = await response.json()
-      setImages(data)
+      setImages(data || [])
     } catch (error) {
       console.error('Failed to fetch gallery images:', error)
+      setError('Failed to load gallery images. Please refresh the page.')
+      setImages([])
     }
   }
 
@@ -216,6 +222,11 @@ export default function AdminGalleryPage() {
 
           <div className="lg:col-span-2">
             <h2 className="text-2xl font-bold mb-4">Gallery Images</h2>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                {error}
+              </div>
+            )}
             {images.length === 0 ? (
               <div className="bg-white rounded-lg shadow p-8 text-center">
                 <p className="text-gray-600">No images yet. Add your first image!</p>
@@ -226,14 +237,22 @@ export default function AdminGalleryPage() {
                   .sort((a, b) => a.displayOrder - b.displayOrder)
                   .map((image) => (
                     <div key={image.id} className="bg-white rounded-lg shadow overflow-hidden">
-                      <div className="relative h-48 w-full">
-                        <Image
-                          src={image.imageUrl}
-                          alt={image.title}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
+                      <div className="relative h-48 w-full bg-gray-200">
+                        {image.imageUrl ? (
+                          <img
+                            src={image.imageUrl}
+                            alt={image.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="200"%3E%3Crect fill="%23ddd" width="400" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="20" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3EImage not available%3C/text%3E%3C/svg%3E'
+                            }}
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-gray-400">
+                            No Image
+                          </div>
+                        )}
                       </div>
                       <div className="p-4">
                         <h3 className="text-lg font-bold">{image.title}</h3>
