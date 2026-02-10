@@ -73,13 +73,13 @@ export default function AdminGalleryPage() {
         }
       }
 
-      // Ensure checkbox value is boolean (checkboxes return string 'on' or undefined)
+      // Ensure checkbox value is boolean (checkboxes return true/false or undefined)
       const submitData = {
         title: data.title,
         description: data.description || null,
         imageUrl: imageUrl,
         category: data.category || 'interior',
-        displayOrder: data.displayOrder ? parseInt(data.displayOrder) : 0,
+        displayOrder: data.displayOrder ? parseInt(String(data.displayOrder)) : 0,
         isActive: data.isActive === true || data.isActive === 'on' || data.isActive === undefined,
       }
 
@@ -276,7 +276,7 @@ export default function AdminGalleryPage() {
 
                 <div className="flex items-center">
                   <input
-                    {...register('isActive', { valueAsBoolean: true })}
+                    {...register('isActive')}
                     type="checkbox"
                     id="isActive"
                     className="mr-2"
@@ -290,11 +290,6 @@ export default function AdminGalleryPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  onClick={() => {
-                    setError('')
-                    setSuccess('')
-                    console.log('Add Image button clicked!')
-                  }}
                   className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? '⏳ Saving...' : isEditing ? 'Update Image' : 'Add Image'}
