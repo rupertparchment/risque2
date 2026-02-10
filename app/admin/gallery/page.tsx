@@ -40,9 +40,18 @@ export default function AdminGalleryPage() {
     }
   }
 
-  const { register, handleSubmit, reset, setValue } = useForm<GalleryImage>()
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<GalleryImage>({
+    mode: 'onChange',
+  })
+  
+  const onError = (errors: any) => {
+    console.error('Form validation errors:', errors)
+    setError('Please fill in all required fields correctly.')
+  }
 
   const onSubmit = async (data: any) => {
+    console.log('Form submitted!', data)
+    
     setIsLoading(true)
     setError('')
     setSuccess('')
@@ -163,16 +172,22 @@ export default function AdminGalleryPage() {
                 </div>
               )}
               
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <form 
+                onSubmit={handleSubmit(onSubmit, onError)} 
+                className="space-y-4"
+              >
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Title *
                   </label>
                   <input
-                    {...register('title', { required: true })}
+                    {...register('title', { required: 'Title is required' })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     placeholder="e.g., Main Lounge"
                   />
+                  {errors.title && (
+                    <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
+                  )}
                 </div>
 
                 <div>
@@ -192,11 +207,20 @@ export default function AdminGalleryPage() {
                     Image URL *
                   </label>
                   <input
-                    {...register('imageUrl', { required: true })}
+                    {...register('imageUrl', { 
+                      required: 'Image URL is required',
+                      pattern: {
+                        value: /^https?:\/\/.+/,
+                        message: 'Please enter a valid URL starting with http:// or https://'
+                      }
+                    })}
                     type="url"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     placeholder="https://example.com/image.jpg"
                   />
+                  {errors.imageUrl && (
+                    <p className="text-red-500 text-sm mt-1">{errors.imageUrl.message}</p>
+                  )}
                   <p className="text-xs text-gray-500 mt-1">
                     Upload image to a hosting service (Imgur, Cloudinary, etc.) and paste URL here
                   </p>
