@@ -65,12 +65,29 @@ export async function PUT(
 
     console.log('Updated member dateOfBirth:', member.dateOfBirth)
     console.log('Updated member dateOfBirth ISO:', member.dateOfBirth?.toISOString())
-    console.log('Updated member dateOfBirth local:', member.dateOfBirth ? `${member.dateOfBirth.getFullYear()}-${String(member.dateOfBirth.getMonth() + 1).padStart(2, '0')}-${String(member.dateOfBirth.getDate()).padStart(2, '0')}` : null)
+    
+    // Helper to format date for JSON response (extract date components to avoid timezone issues)
+    const formatDateForResponse = (date: Date | null): string | null => {
+      if (!date) return null
+      // Use UTC methods to get the date components as stored
+      const year = date.getUTCFullYear()
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+      const day = String(date.getUTCDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
 
     // Don't return the password hash
     const { password: _, ...memberWithoutPassword } = member
 
-    return NextResponse.json(memberWithoutPassword)
+    // Format dates as YYYY-MM-DD strings to avoid timezone issues
+    const response = {
+      ...memberWithoutPassword,
+      dateOfBirth: formatDateForResponse(member.dateOfBirth),
+      membershipStart: formatDateForResponse(member.membershipStart),
+      membershipEnd: formatDateForResponse(member.membershipEnd),
+    }
+
+    return NextResponse.json(response)
   } catch (error: any) {
     console.error('Failed to update member:', error)
     return NextResponse.json(

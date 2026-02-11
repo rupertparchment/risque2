@@ -100,6 +100,10 @@ export default function AdminMembersPage() {
   // Helper to format date for input field (handles timezone correctly)
   const formatDateForInput = (date: Date | string | null): string => {
     if (!date) return ''
+    // If it's already a string in YYYY-MM-DD format, return it as-is
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return date
+    }
     const d = typeof date === 'string' ? new Date(date) : date
     // Get local date components to avoid timezone issues
     const year = d.getFullYear()

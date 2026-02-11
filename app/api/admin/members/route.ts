@@ -50,7 +50,25 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    return NextResponse.json(members)
+    // Helper to format date for JSON response (extract date components to avoid timezone issues)
+    const formatDateForResponse = (date: Date | null): string | null => {
+      if (!date) return null
+      // Use UTC methods to get the date components as stored
+      const year = date.getUTCFullYear()
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+      const day = String(date.getUTCDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
+    // Format dates as YYYY-MM-DD strings to avoid timezone issues
+    const formattedMembers = members.map(member => ({
+      ...member,
+      dateOfBirth: formatDateForResponse(member.dateOfBirth),
+      membershipStart: formatDateForResponse(member.membershipStart),
+      membershipEnd: formatDateForResponse(member.membershipEnd),
+    }))
+
+    return NextResponse.json(formattedMembers)
   } catch (error: any) {
     console.error('Failed to fetch members:', error)
     return NextResponse.json(
@@ -147,7 +165,23 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json(member)
+    // Helper to format date for JSON response
+    const formatDateForResponse = (date: Date | null): string | null => {
+      if (!date) return null
+      const year = date.getUTCFullYear()
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+      const day = String(date.getUTCDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
+    const response = {
+      ...member,
+      dateOfBirth: formatDateForResponse(member.dateOfBirth),
+      membershipStart: formatDateForResponse(member.membershipStart),
+      membershipEnd: formatDateForResponse(member.membershipEnd),
+    }
+
+    return NextResponse.json(response)
   } catch (error: any) {
     console.error('Failed to create member:', error)
     return NextResponse.json(
