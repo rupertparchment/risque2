@@ -443,10 +443,18 @@ export default function AdminMembersPage() {
                   </label>
                   <input
                     type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                    value={formData.dateOfBirth || ''}
+                    onChange={(e) => {
+                      console.log('Date input changed:', e.target.value)
+                      setFormData({ ...formData, dateOfBirth: e.target.value })
+                    }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   />
+                  {formData.dateOfBirth && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Current value: {formData.dateOfBirth}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
