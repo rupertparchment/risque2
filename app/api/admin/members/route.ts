@@ -5,6 +5,9 @@ import bcrypt from 'bcryptjs'
 export async function GET(request: NextRequest) {
   try {
     const members = await prisma.user.findMany({
+      where: {
+        isDeleted: false, // Only show non-deleted members
+      },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -17,6 +20,8 @@ export async function GET(request: NextRequest) {
         membershipStart: true,
         membershipEnd: true,
         stripeCustomerId: true,
+        isDeleted: true,
+        deletedAt: true,
         createdAt: true,
         updatedAt: true,
         _count: {

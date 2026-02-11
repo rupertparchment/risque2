@@ -104,7 +104,7 @@ export default function AdminMembersPage() {
   }
 
   const handleDelete = async (id: string, email: string) => {
-    if (!confirm(`Are you sure you want to delete ${email}? This action cannot be undone.`)) return
+    if (!confirm(`Are you sure you want to disable ${email}?\n\nThis will hide them from the member list but preserve all their data (payments, RSVPs, etc.). You can restore them later if needed.`)) return
 
     try {
       const response = await fetch(`/api/admin/members/${id}`, {
@@ -112,16 +112,16 @@ export default function AdminMembersPage() {
       })
 
       if (response.ok) {
-        setSuccess('Member deleted successfully!')
+        setSuccess('Member disabled successfully! (Data preserved, can be restored later)')
         fetchMembers()
-        setTimeout(() => setSuccess(''), 3000)
+        setTimeout(() => setSuccess(''), 5000)
       } else {
         const data = await response.json()
-        setError(data.error || 'Failed to delete member')
+        setError(data.error || 'Failed to disable member')
       }
     } catch (error) {
-      console.error('Failed to delete member:', error)
-      setError('Failed to delete member. Please try again.')
+      console.error('Failed to disable member:', error)
+      setError('Failed to disable member. Please try again.')
     }
   }
 
@@ -578,8 +578,9 @@ export default function AdminMembersPage() {
                           <button
                             onClick={() => handleDelete(member.id, member.email)}
                             className="text-red-600 hover:text-red-900"
+                            title="Disable member (preserves all data)"
                           >
-                            Delete
+                            Disable
                           </button>
                         </div>
                       </td>
