@@ -19,41 +19,91 @@ export async function GET(request: NextRequest) {
       orderBy = { createdAt: sortOrder }
     }
 
-    const members = await prisma.user.findMany({
-      where: includeDeleted
-        ? {} // Show all members including deleted
-        : {
-            isDeleted: false, // Only show non-deleted members
-          },
-      orderBy,
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        dateOfBirth: true,
-        addressLine1: true,
-        addressLine2: true,
-        city: true,
-        state: true,
-        zip: true,
-        membershipStatus: true,
-        membershipStart: true,
-        membershipEnd: true,
-        stripeCustomerId: true,
-        isDeleted: true,
-        deletedAt: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: {
-          select: {
-            payments: true,
-            rsvps: true,
+    // Try to fetch members - handle case where address columns might not exist yet
+    let members
+    try {
+      members = await prisma.user.findMany({
+        where: includeDeleted
+          ? {} // Show all members including deleted
+          : {
+              isDeleted: false, // Only show non-deleted members
+            },
+        orderBy,
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          dateOfBirth: true,
+          addressLine1: true,
+          addressLine2: true,
+          city: true,
+          state: true,
+          zip: true,
+          membershipStatus: true,
+          membershipStart: true,
+          membershipEnd: true,
+          stripeCustomerId: true,
+          isDeleted: true,
+          deletedAt: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: {
+              payments: true,
+              rsvps: true,
+            },
           },
         },
-      },
-    })
+      })
+    } catch (dbError: any) {
+      // If address columns don't exist, try without them
+      if (dbError.message && (dbError.message.includes('addressLine1') || dbError.message.includes('Unknown column') || dbError.message.includes('column') && dbError.message.includes('does not exist'))) {
+        console.log('Address columns not found, fetching without them...')
+        members = await prisma.user.findMany({
+          where: includeDeleted
+            ? {}
+            : {
+                isDeleted: false,
+              },
+          orderBy,
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            dateOfBirth: true,
+            membershipStatus: true,
+            membershipStart: true,
+            membershipEnd: true,
+            stripeCustomerId: true,
+            isDeleted: true,
+            deletedAt: true,
+            createdAt: true,
+            updatedAt: true,
+            _count: {
+              select: {
+                payments: true,
+                rsvps: true,
+              },
+            },
+          },
+        })
+        // Add null address fields to each member
+        members = members.map((m: any) => ({
+          ...m,
+          addressLine1: null,
+          addressLine2: null,
+          city: null,
+          state: null,
+          zip: null,
+        }))
+      } else {
+        throw dbError
+      }
+    }
 
     // Helper to format date for JSON response (simple date extraction)
     const formatDateForResponse = (date: Date | null): string | null => {
