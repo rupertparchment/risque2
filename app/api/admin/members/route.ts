@@ -76,6 +76,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(formattedMembers)
   } catch (error: any) {
     console.error('Failed to fetch members:', error)
+    
+    // Check if error is related to missing columns
+    if (error.message && error.message.includes('addressLine1') || error.message.includes('Unknown column')) {
+      return NextResponse.json(
+        { 
+          error: 'Database migration required. Please run the SQL script ADD_ADDRESS_FIELDS_TO_USER.sql in your Supabase SQL Editor to add address columns.',
+          details: error.message 
+        },
+        { status: 500 }
+      )
+    }
+    
     return NextResponse.json(
       { error: error.message || 'Failed to fetch members' },
       { status: 500 }
