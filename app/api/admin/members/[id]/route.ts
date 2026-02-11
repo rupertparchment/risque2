@@ -2,6 +2,74 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const member = await prisma.user.findUnique({
+      where: { id: params.id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        dateOfBirth: true,
+        addressLine1: true,
+        addressLine2: true,
+        city: true,
+        state: true,
+        zip: true,
+        membershipStatus: true,
+        membershipStart: true,
+        membershipEnd: true,
+        stripeCustomerId: true,
+        isDeleted: true,
+        deletedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
+
+    if (!member) {
+      return NextResponse.json(
+        { error: 'Member not found' },
+        { status: 404 }
+      )
+    }
+
+    // Helper to format date for JSON response (simple date extraction)
+    const formatDateForResponse = (date: Date | null): string | null => {
+      if (!date) return null
+      // Extract date components - dates are stored at UTC midnight, so use UTC methods
+      const year = date.getUTCFullYear()
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+      const day = String(date.getUTCDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
+    // Format dates as YYYY-MM-DD strings to avoid timezone issues
+    const response = {
+      ...member,
+      dateOfBirth: formatDateForResponse(member.dateOfBirth),
+      membershipStart: formatDateForResponse(member.membershipStart),
+      membershipEnd: formatDateForResponse(member.membershipEnd),
+      deletedAt: member.deletedAt ? member.deletedAt.toISOString() : null,
+      createdAt: member.createdAt.toISOString(),
+      updatedAt: member.updatedAt.toISOString(),
+    }
+
+    return NextResponse.json(response)
+  } catch (error: any) {
+    console.error('Failed to fetch member:', error)
+    return NextResponse.json(
+      { error: error.message || 'Failed to fetch member' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -14,6 +82,11 @@ export async function PUT(
       lastName,
       phone,
       dateOfBirth,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      zip,
       membershipStatus,
       membershipStart,
       membershipEnd,
@@ -45,20 +118,21 @@ export async function PUT(
       lastName,
       phone: phoneToStore,
       dateOfBirth: dateOfBirth && dateOfBirth.trim() ? parseLocalDate(dateOfBirth) : null,
+      addressLine1: addressLine1 || null,
+      addressLine2: addressLine2 || null,
+      city: city || null,
+      state: state || null,
+      zip: zip || null,
       membershipStatus,
       membershipStart: membershipStart && membershipStart.trim() ? parseLocalDate(membershipStart) : null,
       membershipEnd: membershipEnd && membershipEnd.trim() ? parseLocalDate(membershipEnd) : null,
     }
-
-    console.log('Update data dateOfBirth:', updateData.dateOfBirth)
 
     // Only update password if provided
     if (password && password.trim()) {
       updateData.password = await bcrypt.hash(password, 10)
     }
 
-    console.log('Updating member with data:', JSON.stringify(updateData, null, 2))
-    
     const member = await prisma.user.update({
       where: { id: params.id },
       data: updateData,

@@ -18,6 +18,11 @@ model User {
   lastName      String
   phone         String?
   dateOfBirth   DateTime?
+  addressLine1 String?
+  addressLine2 String?
+  city          String?
+  state         String?
+  zip           String?
   membershipStatus String @default("pending") // pending, active, expired, cancelled
   membershipStart DateTime?
   membershipEnd   DateTime?

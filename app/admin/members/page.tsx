@@ -11,6 +11,11 @@ interface Member {
   lastName: string
   phone: string | null
   dateOfBirth: string | null // YYYY-MM-DD format
+  addressLine1: string | null
+  addressLine2: string | null
+  city: string | null
+  state: string | null
+  zip: string | null
   membershipStatus: string
   membershipStart: string | null // YYYY-MM-DD format
   membershipEnd: string | null // YYYY-MM-DD format
@@ -48,6 +53,11 @@ export default function AdminMembersPage() {
     lastName: '',
     phone: '',
     dateOfBirth: '',
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    state: '',
+    zip: '',
     membershipStatus: 'pending',
     membershipStart: '',
     membershipEnd: '',
@@ -89,6 +99,11 @@ export default function AdminMembersPage() {
       lastName: '',
       phone: '',
       dateOfBirth: '',
+      addressLine1: '',
+      addressLine2: '',
+      city: '',
+      state: '',
+      zip: '',
       membershipStatus: 'pending',
       membershipStart: '',
       membershipEnd: '',
@@ -661,7 +676,12 @@ export default function AdminMembersPage() {
                     >
                       <td className="px-3 py-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {member.firstName} {member.lastName}
+                          <Link 
+                            href={`/admin/members/${member.id}`}
+                            className="text-blue-600 hover:text-blue-900 hover:underline"
+                          >
+                            {member.firstName} {member.lastName}
+                          </Link>
                         </div>
                         {member.phone && (
                           <div className="text-sm text-gray-500">{formatPhoneNumber(member.phone)}</div>
@@ -714,12 +734,12 @@ export default function AdminMembersPage() {
                         <div className="flex gap-2">
                           {!member.isDeleted ? (
                             <>
-                              <button
-                                onClick={() => handleEdit(member)}
+                              <Link
+                                href={`/admin/members/${member.id}`}
                                 className="text-blue-600 hover:text-blue-900"
                               >
                                 Edit
-                              </button>
+                              </Link>
                               <button
                                 onClick={() => handleDelete(member.id, member.email)}
                                 className="text-red-600 hover:text-red-900"
