@@ -156,8 +156,10 @@ export default function MemberDetailPage() {
 
       if (response.ok) {
         setSuccess('Member updated successfully!')
-        await fetchMember() // Refresh data
-        setTimeout(() => setSuccess(''), 3000)
+        // Redirect to members list after a short delay
+        setTimeout(() => {
+          router.push('/admin/members')
+        }, 1000)
       } else {
         const errorMsg = data.error || data.message || 'Failed to update member'
         console.error('Update failed:', errorMsg, data)
