@@ -313,15 +313,17 @@ export default function AdminMembersPage() {
     : membersToShow.filter((m) => m.membershipStatus === filterStatus)
   
   // Filter by search query (search in name, email, phone)
-  const searchLower = searchQuery.trim().toLowerCase()
-  const filteredMembers = searchLower === ''
-    ? statusFilteredMembers
-    : statusFilteredMembers.filter((m) => {
-        const name = `${m.firstName} ${m.lastName}`.toLowerCase()
-        const email = (m.email || '').toLowerCase()
-        const phone = formatPhoneNumber(m.phone).toLowerCase()
-        return name.includes(searchLower) || email.includes(searchLower) || phone.includes(searchLower)
-      })
+  const filterBySearch = (membersList: typeof statusFilteredMembers, query: string) => {
+    if (!query.trim()) return membersList
+    const searchLower = query.toLowerCase()
+    return membersList.filter((m) => {
+      const name = `${m.firstName} ${m.lastName}`.toLowerCase()
+      const email = (m.email || '').toLowerCase()
+      const phone = formatPhoneNumber(m.phone).toLowerCase()
+      return name.includes(searchLower) || email.includes(searchLower) || phone.includes(searchLower)
+    })
+  }
+  const filteredMembers = filterBySearch(statusFilteredMembers, searchQuery)
 
   const getStatusColor = (status: string) => {
     switch (status) {
