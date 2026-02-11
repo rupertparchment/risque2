@@ -7,6 +7,7 @@ function getPrisma() {
   console.log('getPrisma() called - DATABASE_URL available:', !!dbUrl)
   console.log('DATABASE_URL starts with postgres:', dbUrl?.startsWith('postgresql://') || dbUrl?.startsWith('postgres://'))
   console.log('DATABASE_URL first 50 chars:', dbUrl?.substring(0, 50) || 'NOT SET')
+  console.log('All env vars:', Object.keys(process.env).filter(k => k.includes('DATABASE') || k.includes('POSTGRES')))
   
   if (!dbUrl) {
     throw new Error('DATABASE_URL environment variable is not set')
@@ -16,7 +17,14 @@ function getPrisma() {
     throw new Error(`DATABASE_URL must start with postgresql:// or postgres://. Got: ${dbUrl.substring(0, 30)}...`)
   }
   
-  return new PrismaClient()
+  // Explicitly pass DATABASE_URL to PrismaClient to ensure it uses the correct value
+  return new PrismaClient({
+    datasources: {
+      db: {
+        url: dbUrl,
+      },
+    },
+  })
 }
 
 export async function GET(request: NextRequest) {
