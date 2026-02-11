@@ -143,24 +143,29 @@ export default function MemberDetailPage() {
     setSuccess('')
 
     try {
+      console.log('Submitting form data:', formData)
       const response = await fetch(`/api/admin/members/${memberId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       })
 
+      console.log('Response status:', response.status)
       const data = await response.json()
+      console.log('Response data:', data)
 
       if (response.ok) {
         setSuccess('Member updated successfully!')
-        fetchMember() // Refresh data
+        await fetchMember() // Refresh data
         setTimeout(() => setSuccess(''), 3000)
       } else {
-        setError(data.error || 'Failed to update member')
+        const errorMsg = data.error || data.message || 'Failed to update member'
+        console.error('Update failed:', errorMsg, data)
+        setError(errorMsg)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save member:', error)
-      setError('Failed to update member. Please try again.')
+      setError(error.message || 'Failed to update member. Please try again.')
     } finally {
       setIsSaving(false)
     }
