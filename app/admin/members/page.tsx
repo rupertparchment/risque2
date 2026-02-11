@@ -395,10 +395,8 @@ export default function AdminMembersPage() {
     return parts.join(', ')
   }
 
-  // Render component
   return (
-    <React.Fragment>
-      <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -879,6 +877,5 @@ export default function AdminMembersPage() {
         )}
       </div>
     </div>
-    </React.Fragment>
   )
 }
