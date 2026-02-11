@@ -220,6 +220,46 @@ export default function AdminMembersPage() {
     }
   }
 
+  const calculateMembershipDuration = (startDate: Date | null, endDate: Date | null) => {
+    if (!startDate) return 'Not a member yet'
+    
+    const start = new Date(startDate)
+    const end = endDate ? new Date(endDate) : new Date() // Use current date if no end date
+    const now = new Date()
+    
+    // Use end date if it's in the past, otherwise use current date
+    const referenceDate = end < now ? end : now
+    
+    if (referenceDate < start) return 'Not started'
+    
+    const years = referenceDate.getFullYear() - start.getFullYear()
+    const months = referenceDate.getMonth() - start.getMonth()
+    
+    let totalMonths = years * 12 + months
+    
+    // Adjust if day hasn't passed yet this month
+    if (referenceDate.getDate() < start.getDate()) {
+      totalMonths--
+    }
+    
+    const finalYears = Math.floor(totalMonths / 12)
+    const finalMonths = totalMonths % 12
+    
+    if (finalYears === 0 && finalMonths === 0) {
+      return 'Less than 1 month'
+    }
+    
+    const parts = []
+    if (finalYears > 0) {
+      parts.push(`${finalYears} ${finalYears === 1 ? 'year' : 'years'}`)
+    }
+    if (finalMonths > 0) {
+      parts.push(`${finalMonths} ${finalMonths === 1 ? 'month' : 'months'}`)
+    }
+    
+    return parts.join(', ')
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4">
@@ -457,6 +497,9 @@ export default function AdminMembersPage() {
                       Membership Period
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Member Since
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Payments
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -503,6 +546,16 @@ export default function AdminMembersPage() {
                           </div>
                         ) : (
                           <span className="text-gray-400">Not set</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div className="font-medium">
+                          {calculateMembershipDuration(member.membershipStart, member.membershipEnd)}
+                        </div>
+                        {member.membershipStart && (
+                          <div className="text-xs text-gray-400 mt-1">
+                            Since {format(new Date(member.membershipStart), 'MMM yyyy')}
+                          </div>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
