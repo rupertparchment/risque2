@@ -99,6 +99,19 @@ export default function AdminMembersPage() {
     fetchMembers()
   }, [showDeleted, sortBy, sortOrder])
 
+  // Helper to format phone number to (111) 123-4567 format
+  const formatPhoneNumber = (phone: string | null): string => {
+    if (!phone) return ''
+    // Remove all non-digits
+    const digits = phone.replace(/\D/g, '')
+    // Format as (XXX) XXX-XXXX
+    if (digits.length === 10) {
+      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+    }
+    // Return as-is if not 10 digits (partial input)
+    return phone
+  }
+
   const resetForm = () => {
     setFormData({
       email: '',
@@ -123,19 +136,6 @@ export default function AdminMembersPage() {
   // Helper to format date for input field (simple - dates come as YYYY-MM-DD strings)
   const formatDateForInput = (date: string | null): string => {
     return date || ''
-  }
-
-  // Helper to format phone number to (111) 123-4567 format
-  const formatPhoneNumber = (phone: string | null): string => {
-    if (!phone) return ''
-    // Remove all non-digits
-    const digits = phone.replace(/\D/g, '')
-    // Format as (XXX) XXX-XXXX
-    if (digits.length === 10) {
-      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
-    }
-    // Return as-is if not 10 digits (partial input)
-    return phone
   }
 
   // Helper to handle phone input changes
