@@ -19,6 +19,9 @@ export default function AdminGalleryPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string>('')
 
   useEffect(() => {
     fetchImages()
@@ -57,23 +60,46 @@ export default function AdminGalleryPage() {
     setSuccess('')
     
     try {
+      let imageUrl = ''
+
+      // Upload file if selected
+      if (selectedFile) {
+        setUploadingFile(true)
+        try {
+          imageUrl = await handleUpload(selectedFile)
+          console.log('File uploaded:', imageUrl)
+        } catch (uploadError: any) {
+          setError(`Upload failed: ${uploadError.message}`)
+          setIsLoading(false)
+          setUploadingFile(false)
+          return
+        } finally {
+          setUploadingFile(false)
+        }
+      } else if (data.imageUrl?.trim()) {
+        // Use URL if provided
+        imageUrl = data.imageUrl.trim()
+        
+        // Convert Imgur album/page URLs to direct image URLs
+        if (imageUrl.includes('imgur.com/') && !imageUrl.includes('i.imgur.com')) {
+          const imgurId = imageUrl.split('imgur.com/')[1]?.split('/')[0]?.split('?')[0]
+          if (imgurId) {
+            imageUrl = `https://i.imgur.com/${imgurId}.jpg`
+            console.log('Converted Imgur URL:', data.imageUrl, '→', imageUrl)
+          }
+        }
+      } else {
+        setError('Please either upload an image or provide an image URL')
+        setIsLoading(false)
+        return
+      }
+
       const url = isEditing
         ? `/api/admin/gallery/${isEditing.id}`
         : '/api/admin/gallery'
       const method = isEditing ? 'PUT' : 'POST'
 
-      // Convert Imgur album/page URLs to direct image URLs
-      let imageUrl = data.imageUrl.trim()
-      if (imageUrl.includes('imgur.com/') && !imageUrl.includes('i.imgur.com')) {
-        // Convert https://imgur.com/xxxxx to https://i.imgur.com/xxxxx.jpg
-        const imgurId = imageUrl.split('imgur.com/')[1]?.split('/')[0]?.split('?')[0]
-        if (imgurId) {
-          imageUrl = `https://i.imgur.com/${imgurId}.jpg`
-          console.log('Converted Imgur URL:', data.imageUrl, '→', imageUrl)
-        }
-      }
-
-      // Ensure checkbox value is boolean (checkboxes return true/false or undefined)
+      // Ensure checkbox value is boolean
       const submitData = {
         title: data.title,
         description: data.description || null,
@@ -98,6 +124,8 @@ export default function AdminGalleryPage() {
         setSuccess(isEditing ? 'Image updated successfully!' : 'Image added successfully!')
         fetchImages()
         reset()
+        setSelectedFile(null)
+        setPreviewUrl('')
         setIsEditing(null)
         setTimeout(() => setSuccess(''), 3000)
       } else {
@@ -111,8 +139,38 @@ export default function AdminGalleryPage() {
     }
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSelectedFile(file)
+      setPreviewUrl(URL.createObjectURL(file))
+      setValue('imageUrl', '') // Clear URL field when file is selected
+      setError('')
+    }
+  }
+
+  const handleUpload = async (file: File): Promise<string> => {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch('/api/admin/upload', {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Upload failed')
+    }
+
+    const data = await response.json()
+    return data.url
+  }
+
   const handleEdit = (image: GalleryImage) => {
     setIsEditing(image)
+    setSelectedFile(null)
+    setPreviewUrl('')
     setValue('title', image.title)
     setValue('description', image.description || '')
     setValue('imageUrl', image.imageUrl)
@@ -155,6 +213,8 @@ export default function AdminGalleryPage() {
             <button
               onClick={() => {
                 reset()
+                setSelectedFile(null)
+                setPreviewUrl('')
                 setIsEditing(null)
               }}
               className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg"
@@ -221,25 +281,68 @@ export default function AdminGalleryPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Image URL *
+                    Upload Image *
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    disabled={isLoading || uploadingFile}
+                  />
+                  {selectedFile && (
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-600 mb-2">Selected: {selectedFile.name}</p>
+                      {previewUrl && (
+                        <img
+                          src={previewUrl}
+                          alt="Preview"
+                          className="w-full h-48 object-cover rounded-lg border border-gray-300"
+                        />
+                      )}
+                    </div>
+                  )}
+                  {uploadingFile && (
+                    <p className="text-sm text-blue-600 mt-2">⏳ Uploading image...</p>
+                  )}
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">OR</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Image URL
                   </label>
                   <input
                     {...register('imageUrl', { 
-                      required: 'Image URL is required',
                       pattern: {
                         value: /^https?:\/\/.+/,
                         message: 'Please enter a valid URL starting with http:// or https://'
+                      },
+                      validate: (value) => {
+                        if (!selectedFile && !value?.trim()) {
+                          return 'Please either upload an image or provide an image URL'
+                        }
+                        return true
                       }
                     })}
                     type="url"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     placeholder="https://example.com/image.jpg"
+                    disabled={!!selectedFile || isLoading}
                   />
                   {errors.imageUrl && (
                     <p className="text-red-500 text-sm mt-1">{errors.imageUrl.message}</p>
                   )}
                   <p className="text-xs text-gray-500 mt-1">
-                    Upload image to a hosting service (Imgur, Cloudinary, etc.) and paste URL here
+                    Or paste an image URL from Imgur, Cloudinary, etc.
                   </p>
                 </div>
 
