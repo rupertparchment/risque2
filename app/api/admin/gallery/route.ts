@@ -4,8 +4,17 @@ import { PrismaClient } from '@prisma/client'
 // Log DATABASE_URL status (first 30 chars only for security)
 console.log('DATABASE_URL available:', !!process.env.DATABASE_URL)
 console.log('DATABASE_URL starts with postgres:', process.env.DATABASE_URL?.startsWith('postgresql://') || process.env.DATABASE_URL?.startsWith('postgres://'))
+console.log('DATABASE_URL first 50 chars:', process.env.DATABASE_URL?.substring(0, 50) || 'NOT SET')
+console.log('All env vars starting with DATABASE:', Object.keys(process.env).filter(k => k.includes('DATABASE')))
 
-const prisma = new PrismaClient()
+// Create PrismaClient with explicit error handling
+let prisma: PrismaClient
+try {
+  prisma = new PrismaClient()
+} catch (error: any) {
+  console.error('Failed to create PrismaClient:', error)
+  throw new Error(`PrismaClient initialization failed: ${error.message}. DATABASE_URL: ${process.env.DATABASE_URL ? 'SET (first 30 chars: ' + process.env.DATABASE_URL.substring(0, 30) + '...)' : 'NOT SET'}`)
+}
 
 export async function GET(request: NextRequest) {
   try {
