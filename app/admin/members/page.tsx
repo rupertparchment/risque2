@@ -27,9 +27,26 @@ export default function AdminMembersPage() {
   const [members, setMembers] = useState<Member[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string>('')
+  const [success, setSuccess] = useState<string>('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [isSeeding, setIsSeeding] = useState(false)
   const [seedMessage, setSeedMessage] = useState<string>('')
+  const [isEditing, setIsEditing] = useState<Member | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    dateOfBirth: '',
+    membershipStatus: 'pending',
+    membershipStart: '',
+    membershipEnd: '',
+  })
 
   useEffect(() => {
     fetchMembers()
@@ -51,6 +68,96 @@ export default function AdminMembersPage() {
       setMembers([])
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      email: '',
+      password: '',
+      firstName: '',
+      lastName: '',
+      phone: '',
+      dateOfBirth: '',
+      membershipStatus: 'pending',
+      membershipStart: '',
+      membershipEnd: '',
+    })
+    setIsEditing(null)
+    setIsCreating(false)
+  }
+
+  const handleEdit = (member: Member) => {
+    setIsEditing(member)
+    setIsCreating(false)
+    setFormData({
+      email: member.email,
+      password: '', // Don't pre-fill password
+      firstName: member.firstName,
+      lastName: member.lastName,
+      phone: member.phone || '',
+      dateOfBirth: member.dateOfBirth ? format(new Date(member.dateOfBirth), 'yyyy-MM-dd') : '',
+      membershipStatus: member.membershipStatus,
+      membershipStart: member.membershipStart ? format(new Date(member.membershipStart), 'yyyy-MM-dd') : '',
+      membershipEnd: member.membershipEnd ? format(new Date(member.membershipEnd), 'yyyy-MM-dd') : '',
+    })
+  }
+
+  const handleDelete = async (id: string, email: string) => {
+    if (!confirm(`Are you sure you want to delete ${email}? This action cannot be undone.`)) return
+
+    try {
+      const response = await fetch(`/api/admin/members/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setSuccess('Member deleted successfully!')
+        fetchMembers()
+        setTimeout(() => setSuccess(''), 3000)
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Failed to delete member')
+      }
+    } catch (error) {
+      console.error('Failed to delete member:', error)
+      setError('Failed to delete member. Please try again.')
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSaving(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const url = isEditing
+        ? `/api/admin/members/${isEditing.id}`
+        : '/api/admin/members'
+      const method = isEditing ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setSuccess(isEditing ? 'Member updated successfully!' : 'Member created successfully!')
+        resetForm()
+        fetchMembers()
+        setTimeout(() => setSuccess(''), 3000)
+      } else {
+        setError(data.error || `Failed to ${isEditing ? 'update' : 'create'} member`)
+      }
+    } catch (error) {
+      console.error('Failed to save member:', error)
+      setError(`Failed to ${isEditing ? 'update' : 'create'} member. Please try again.`)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -123,6 +230,15 @@ export default function AdminMembersPage() {
           </div>
           <div className="flex gap-4">
             <button
+              onClick={() => {
+                resetForm()
+                setIsCreating(true)
+              }}
+              className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg"
+            >
+              + New Member
+            </button>
+            <button
               onClick={handleSeedMembers}
               disabled={isSeeding}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -144,9 +260,153 @@ export default function AdminMembersPage() {
           </div>
         )}
 
-        {seedMessage && (
+        {success && (
           <div className="bg-green-50 border-2 border-green-500 text-green-700 px-4 py-3 rounded mb-4 font-semibold">
+            ✅ {success}
+          </div>
+        )}
+
+        {seedMessage && (
+          <div className="bg-green-50 border-2 border-green-500 text-green-700 px-4 py-3 rounded mb-4 font-semibold whitespace-pre-line">
             {seedMessage}
+          </div>
+        )}
+
+        {/* Create/Edit Form */}
+        {(isCreating || isEditing) && (
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 className="text-2xl font-bold mb-4">
+              {isEditing ? 'Edit Member' : 'Create New Member'}
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    required
+                    disabled={!!isEditing}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Password {isEditing ? '(leave blank to keep current)' : '*'}
+                  </label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    required={!isEditing}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    First Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Last Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Date of Birth
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Membership Status *
+                  </label>
+                  <select
+                    value={formData.membershipStatus}
+                    onChange={(e) => setFormData({ ...formData, membershipStatus: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    required
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="active">Active</option>
+                    <option value="expired">Expired</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Membership Start
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.membershipStart}
+                    onChange={(e) => setFormData({ ...formData, membershipStart: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Membership End
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.membershipEnd}
+                    onChange={(e) => setFormData({ ...formData, membershipEnd: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+                >
+                  {isSaving ? 'Saving...' : isEditing ? 'Update Member' : 'Create Member'}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         )}
 
@@ -205,6 +465,9 @@ export default function AdminMembersPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Joined
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -250,6 +513,22 @@ export default function AdminMembersPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {format(new Date(member.createdAt), 'MMM d, yyyy')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEdit(member)}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(member.id, member.email)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
