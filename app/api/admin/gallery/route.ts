@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 
+// Log DATABASE_URL status (first 30 chars only for security)
+console.log('DATABASE_URL available:', !!process.env.DATABASE_URL)
+console.log('DATABASE_URL starts with postgres:', process.env.DATABASE_URL?.startsWith('postgresql://') || process.env.DATABASE_URL?.startsWith('postgres://'))
+
 const prisma = new PrismaClient()
 
 export async function GET(request: NextRequest) {

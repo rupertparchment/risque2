@@ -1,94 +1,78 @@
-# Vercel Environment Variables - Quick Reference
+# Vercel Environment Variables Setup
 
-## Copy-Paste Ready List
+## Required Environment Variables
 
-**Add these in Vercel → Project Settings → Environment Variables:**
+You need to add these environment variables in Vercel for the site to work properly.
 
-### 1. DATABASE_URL
-```
-file:./dev.db
-```
-*(Update to PostgreSQL connection string for production)*
+## How to Add Environment Variables in Vercel
 
-### 2. NEXTAUTH_URL
-```
-https://risque2.com
-```
+1. **Go to Vercel Dashboard**: https://vercel.com/dashboard
+2. **Click on your project** (`risque2`)
+3. **Go to Settings** → **Environment Variables** (in the left sidebar)
+4. **Add each variable** using the "Add New" button
 
-### 3. NEXTAUTH_SECRET
-*(Generate with: https://generate-secret.vercel.app/32)*
-```
-[generated-secret-here]
-```
+## Required Variables
 
-### 4. NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-*(Get from: https://dashboard.stripe.com/test/apikeys)*
+### 1. DATABASE_URL (REQUIRED - Fixes current error)
 ```
-pk_test_...
+postgresql://postgres:Parchie!970#2026@db.spuwqyknbdyicicxfomd.supabase.co:5432/postgres
 ```
+- **Name**: `DATABASE_URL`
+- **Value**: Your Supabase PostgreSQL connection string (above)
+- **Environment**: Select all (Production, Preview, Development)
 
-### 5. STRIPE_SECRET_KEY
-*(Get from: https://dashboard.stripe.com/test/apikeys)*
+### 2. NEXTAUTH_URL (REQUIRED)
 ```
-sk_test_...
+https://www.risque2.com
 ```
+- **Name**: `NEXTAUTH_URL`
+- **Value**: `https://www.risque2.com`
+- **Environment**: Production only
 
-### 6. STRIPE_WEBHOOK_SECRET
-*(Set up after domain is connected)*
-```
-whsec_...
-```
+### 3. ADMIN_EMAIL (REQUIRED for admin login)
+- **Name**: `ADMIN_EMAIL`
+- **Value**: Your admin email address (e.g., `admin@risque2.com`)
+- **Environment**: All environments
 
-### 7. ADMIN_EMAIL
-```
-admin@risque2.com
-```
+### 4. ADMIN_PASSWORD (REQUIRED for admin login)
+- **Name**: `ADMIN_PASSWORD`
+- **Value**: Your admin password
+- **Environment**: All environments
 
-### 8. ADMIN_PASSWORD
-```
-[your-secure-password]
-```
+### 5. STRIPE_SECRET_KEY (REQUIRED for payments)
+- **Name**: `STRIPE_SECRET_KEY`
+- **Value**: Your Stripe secret key (starts with `sk_`)
+- **Environment**: All environments
 
-## Where to Get Values
+### 6. STRIPE_WEBHOOK_SECRET (REQUIRED for Stripe webhooks)
+- **Name**: `STRIPE_WEBHOOK_SECRET`
+- **Value**: Your Stripe webhook secret (starts with `whsec_`)
+- **Environment**: Production only
 
-### NEXTAUTH_SECRET
-**Generate online:**
-- https://generate-secret.vercel.app/32
-- Copy the generated string
-
-**Or generate locally:**
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-```
-
-### Stripe Keys
-1. Go to: https://dashboard.stripe.com/test/apikeys
-2. Copy "Publishable key" (pk_test_...)
-3. Copy "Secret key" (sk_test_...)
-4. Click "Reveal test key" if needed
-
-### Database URL (For Production)
-**After setting up Supabase/Railway:**
-- Get connection string from your database provider
-- Update `DATABASE_URL` in Vercel
-- Update `prisma/schema.prisma` to use `postgresql`
+### 7. NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY (REQUIRED for payment form)
+- **Name**: `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- **Value**: Your Stripe publishable key (starts with `pk_`)
+- **Environment**: All environments (must be public)
 
 ## Important Notes
 
-1. **Use test Stripe keys for now** (pk_test_ and sk_test_)
-2. **Switch to live keys** when ready for real payments
-3. **Database must be PostgreSQL** (not SQLite) for Vercel
-4. **Webhook secret** comes after domain is connected
+1. **After adding variables**, you MUST **redeploy** for them to take effect:
+   - Go to **Deployments** tab
+   - Click **"..."** on latest deployment → **"Redeploy"**
 
-## Step-by-Step
+2. **DATABASE_URL** must start with `postgresql://` or `postgres://`
 
-1. **Add all variables** (except webhook secret)
-2. **Deploy**
-3. **Connect domain**
-4. **Set up webhook** (get secret from Stripe)
-5. **Add webhook secret** to Vercel
-6. **Set up database** (Supabase/Railway)
-7. **Update DATABASE_URL**
-8. **Redeploy**
+3. **NEXT_PUBLIC_*** variables are exposed to the browser - only use for public keys
 
-Ready to deploy! 🚀
+4. **Never commit** `.env` files to GitHub - keep secrets in Vercel only
+
+## Quick Checklist
+
+- [ ] DATABASE_URL added
+- [ ] NEXTAUTH_URL added
+- [ ] ADMIN_EMAIL added
+- [ ] ADMIN_PASSWORD added
+- [ ] STRIPE_SECRET_KEY added (if using payments)
+- [ ] STRIPE_WEBHOOK_SECRET added (if using payments)
+- [ ] NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY added (if using payments)
+- [ ] Redeployed after adding variables
