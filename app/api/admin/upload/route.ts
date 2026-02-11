@@ -37,9 +37,14 @@ export async function POST(request: NextRequest) {
     const fileName = `gallery/${timestamp}-${randomString}.${fileExt}`
 
     // Upload to Vercel Blob
+    // Try to get token from environment, or use store ID
+    const token = process.env.BLOB_READ_WRITE_TOKEN
+    const storeId = process.env.BLOB_STORE_ID || 'store_bCvwHAkdvWCZNQWz' // Fallback to your store ID
+    
     const blob = await put(fileName, file, {
       access: 'public',
       contentType: file.type,
+      token: token, // Explicitly pass token if available
     })
 
     return NextResponse.json({
