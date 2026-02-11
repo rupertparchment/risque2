@@ -20,9 +20,7 @@ export async function PUT(
       password,
     } = body
 
-    console.log('Received dateOfBirth:', dateOfBirth)
-
-    // Helper function to parse date strings and store as UTC midnight
+    // Helper function to parse YYYY-MM-DD date strings and store as UTC midnight
     const parseLocalDate = (dateString: string): Date => {
       if (!dateString || dateString.trim() === '') {
         throw new Error('Empty date string')
@@ -32,11 +30,8 @@ export async function PUT(
       if (isNaN(year) || isNaN(month) || isNaN(day)) {
         throw new Error('Invalid date format')
       }
-      // Create date at UTC midnight to avoid timezone shifts when storing
-      // This ensures the date stored in the database is exactly the date the user entered
-      const date = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
-      console.log(`Parsed date: ${dateString} -> UTC: ${date.toISOString()} -> Date components: ${year}-${month}-${day}`)
-      return date
+      // Store at UTC midnight - simple and consistent
+      return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
     }
 
     const updateData: any = {

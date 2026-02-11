@@ -10,15 +10,15 @@ interface Member {
   firstName: string
   lastName: string
   phone: string | null
-  dateOfBirth: Date | null
+  dateOfBirth: string | null // YYYY-MM-DD format
   membershipStatus: string
-  membershipStart: Date | null
-  membershipEnd: Date | null
+  membershipStart: string | null // YYYY-MM-DD format
+  membershipEnd: string | null // YYYY-MM-DD format
   stripeCustomerId: string | null
   isDeleted?: boolean
-  deletedAt?: Date | null
-  createdAt: Date
-  updatedAt: Date
+  deletedAt?: string | null
+  createdAt: string // ISO string
+  updatedAt: string // ISO string
   _count: {
     payments: number
     rsvps: number
@@ -97,19 +97,9 @@ export default function AdminMembersPage() {
     setIsCreating(false)
   }
 
-  // Helper to format date for input field (handles timezone correctly)
-  const formatDateForInput = (date: Date | string | null): string => {
-    if (!date) return ''
-    // If it's already a string in YYYY-MM-DD format, return it as-is
-    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return date
-    }
-    const d = typeof date === 'string' ? new Date(date) : date
-    // Get local date components to avoid timezone issues
-    const year = d.getFullYear()
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
+  // Helper to format date for input field (simple - dates come as YYYY-MM-DD strings)
+  const formatDateForInput = (date: string | null): string => {
+    return date || ''
   }
 
   const handleEdit = (member: Member) => {
@@ -180,9 +170,6 @@ export default function AdminMembersPage() {
     setError('')
     setSuccess('')
 
-    console.log('Submitting formData:', formData)
-    console.log('dateOfBirth value:', formData.dateOfBirth)
-
     try {
       const url = isEditing
         ? `/api/admin/members/${isEditing.id}`
@@ -198,14 +185,11 @@ export default function AdminMembersPage() {
       const data = await response.json()
 
       if (response.ok) {
-        console.log('Response data:', data)
-        console.log('Response dateOfBirth:', data.dateOfBirth)
         setSuccess(isEditing ? 'Member updated successfully!' : 'Member created successfully!')
         resetForm()
         fetchMembers()
         setTimeout(() => setSuccess(''), 3000)
       } else {
-        console.error('Error response:', data)
         setError(data.error || `Failed to ${isEditing ? 'update' : 'create'} member`)
       }
     } catch (error) {
@@ -281,15 +265,32 @@ export default function AdminMembersPage() {
     }
   }
 
-  const calculateMembershipDuration = (startDate: Date | null, endDate: Date | null) => {
+  // Helper to parse YYYY-MM-DD string to Date object
+  const parseDateString = (dateStr: string | null): Date | null => {
+    if (!dateStr) return null
+    const [year, month, day] = dateStr.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+
+  // Helper to format YYYY-MM-DD string for display
+  const formatDateDisplay = (dateStr: string | null): string => {
+    if (!dateStr) return 'Not set'
+    const date = parseDateString(dateStr)
+    if (!date) return 'Not set'
+    return format(date, 'MMM d, yyyy')
+  }
+
+  const calculateMembershipDuration = (startDate: string | null, endDate: string | null) => {
     if (!startDate) return 'Not a member yet'
     
-    const start = new Date(startDate)
-    const end = endDate ? new Date(endDate) : new Date() // Use current date if no end date
+    const start = parseDateString(startDate)
+    if (!start) return 'Not a member yet'
+    
+    const end = endDate ? parseDateString(endDate) : null
     const now = new Date()
     
     // Use end date if it's in the past, otherwise use current date
-    const referenceDate = end < now ? end : now
+    const referenceDate = (end && end < now) ? end : now
     
     if (referenceDate < start) return 'Not started'
     
@@ -448,10 +449,7 @@ export default function AdminMembersPage() {
                   <input
                     type="date"
                     value={formData.dateOfBirth || ''}
-                    onChange={(e) => {
-                      console.log('Date input changed:', e.target.value)
-                      setFormData({ ...formData, dateOfBirth: e.target.value })
-                    }}
+                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   />
                   {formData.dateOfBirth && (
@@ -650,9 +648,9 @@ export default function AdminMembersPage() {
                       <td className="px-3 py-4 text-sm text-gray-500">
                         {member.membershipStart ? (
                           <div className="text-xs">
-                            <div>Start: {format(new Date(member.membershipStart), 'MMM d, yyyy')}</div>
+                            <div>Start: {formatDateDisplay(member.membershipStart)}</div>
                             {member.membershipEnd && (
-                              <div>End: {format(new Date(member.membershipEnd), 'MMM d, yyyy')}</div>
+                              <div>End: {formatDateDisplay(member.membershipEnd)}</div>
                             )}
                           </div>
                         ) : (
@@ -665,7 +663,7 @@ export default function AdminMembersPage() {
                         </div>
                         {member.membershipStart && (
                           <div className="text-xs text-gray-400 mt-1">
-                            Since {format(new Date(member.membershipStart), 'MMM yyyy')}
+                            Since {formatDateDisplay(member.membershipStart)?.split(' ').slice(0, 2).join(' ') || ''}
                           </div>
                         )}
                       </td>
