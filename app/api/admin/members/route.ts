@@ -116,18 +116,19 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Helper function to parse date strings as local dates (not UTC)
+    // Helper function to parse date strings and store as UTC midnight
     const parseLocalDate = (dateString: string): Date => {
       if (!dateString || dateString.trim() === '') {
         throw new Error('Empty date string')
       }
-      // Parse YYYY-MM-DD format as local date (not UTC)
+      // Parse YYYY-MM-DD format
       const [year, month, day] = dateString.split('-').map(Number)
       if (isNaN(year) || isNaN(month) || isNaN(day)) {
         throw new Error('Invalid date format')
       }
-      // Create date at local midnight to avoid timezone shifts
-      return new Date(year, month - 1, day, 0, 0, 0, 0) // month is 0-indexed in JS Date
+      // Create date at UTC midnight to avoid timezone shifts when storing
+      // This ensures the date stored in the database is exactly the date the user entered
+      return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
     }
 
     // Create member
