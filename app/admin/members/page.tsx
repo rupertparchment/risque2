@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 
@@ -302,29 +302,27 @@ export default function AdminMembersPage(): JSX.Element {
   }
 
   // Filter by status, and separate deleted/active members
-  const activeMembers = members.filter(m => !m.isDeleted)
-  const deletedMembers = members.filter(m => m.isDeleted)
+  const activeMembers = members.filter((m) => !m.isDeleted)
+  const deletedMembers = members.filter((m) => m.isDeleted)
   
   const membersToShow = showDeleted ? deletedMembers : activeMembers
   
   // Filter by status
   const statusFilteredMembers = filterStatus === 'all' 
     ? membersToShow 
-    : membersToShow.filter(m => m.membershipStatus === filterStatus)
+    : membersToShow.filter((m) => m.membershipStatus === filterStatus)
   
   // Filter by search query (search in name, email, phone)
-  const filteredMembers = useMemo(() => {
-    if (searchQuery.trim() === '') {
-      return statusFilteredMembers
-    }
+  let filteredMembers = statusFilteredMembers
+  if (searchQuery.trim() !== '') {
     const query = searchQuery.toLowerCase()
-    return statusFilteredMembers.filter((m) => {
+    filteredMembers = statusFilteredMembers.filter((m) => {
       const fullName = `${m.firstName} ${m.lastName}`.toLowerCase()
       const email = (m.email || '').toLowerCase()
       const phoneFormatted = formatPhoneNumber(m.phone).toLowerCase()
       return fullName.includes(query) || email.includes(query) || phoneFormatted.includes(query)
     })
-  }, [statusFilteredMembers, searchQuery])
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
