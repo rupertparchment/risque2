@@ -51,10 +51,6 @@ export default function AdminMembersPage() {
     membershipEnd: '',
   })
 
-  useEffect(() => {
-    fetchMembers()
-  }, [])
-
   const fetchMembers = async () => {
     try {
       setIsLoading(true)
