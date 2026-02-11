@@ -59,13 +59,10 @@ export async function PUT(
       data: updateData,
     })
 
-    console.log('Updated member dateOfBirth:', member.dateOfBirth)
-    console.log('Updated member dateOfBirth ISO:', member.dateOfBirth?.toISOString())
-    
-    // Helper to format date for JSON response (extract date components to avoid timezone issues)
+    // Helper to format date for JSON response (simple date extraction)
     const formatDateForResponse = (date: Date | null): string | null => {
       if (!date) return null
-      // Use UTC methods to get the date components as stored
+      // Extract date components - dates are stored at UTC midnight, so use UTC methods
       const year = date.getUTCFullYear()
       const month = String(date.getUTCMonth() + 1).padStart(2, '0')
       const day = String(date.getUTCDate()).padStart(2, '0')
