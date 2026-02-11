@@ -176,6 +176,9 @@ export default function AdminMembersPage() {
     setError('')
     setSuccess('')
 
+    console.log('Submitting formData:', formData)
+    console.log('dateOfBirth value:', formData.dateOfBirth)
+
     try {
       const url = isEditing
         ? `/api/admin/members/${isEditing.id}`
@@ -191,11 +194,14 @@ export default function AdminMembersPage() {
       const data = await response.json()
 
       if (response.ok) {
+        console.log('Response data:', data)
+        console.log('Response dateOfBirth:', data.dateOfBirth)
         setSuccess(isEditing ? 'Member updated successfully!' : 'Member created successfully!')
         resetForm()
         fetchMembers()
         setTimeout(() => setSuccess(''), 3000)
       } else {
+        console.error('Error response:', data)
         setError(data.error || `Failed to ${isEditing ? 'update' : 'create'} member`)
       }
     } catch (error) {

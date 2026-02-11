@@ -20,6 +20,8 @@ export async function PUT(
       password,
     } = body
 
+    console.log('Received dateOfBirth:', dateOfBirth)
+
     // Helper function to parse date strings as local dates (not UTC)
     const parseLocalDate = (dateString: string): Date => {
       if (!dateString || dateString.trim() === '') {
@@ -31,7 +33,9 @@ export async function PUT(
         throw new Error('Invalid date format')
       }
       // Create date at local midnight to avoid timezone shifts
-      return new Date(year, month - 1, day, 0, 0, 0, 0) // month is 0-indexed in JS Date
+      const date = new Date(year, month - 1, day, 0, 0, 0, 0) // month is 0-indexed in JS Date
+      console.log(`Parsed date: ${dateString} -> ${date.toISOString()} -> Local: ${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`)
+      return date
     }
 
     const updateData: any = {
@@ -45,15 +49,23 @@ export async function PUT(
       membershipEnd: membershipEnd && membershipEnd.trim() ? parseLocalDate(membershipEnd) : null,
     }
 
+    console.log('Update data dateOfBirth:', updateData.dateOfBirth)
+
     // Only update password if provided
     if (password && password.trim()) {
       updateData.password = await bcrypt.hash(password, 10)
     }
 
+    console.log('Updating member with data:', JSON.stringify(updateData, null, 2))
+    
     const member = await prisma.user.update({
       where: { id: params.id },
       data: updateData,
     })
+
+    console.log('Updated member dateOfBirth:', member.dateOfBirth)
+    console.log('Updated member dateOfBirth ISO:', member.dateOfBirth?.toISOString())
+    console.log('Updated member dateOfBirth local:', member.dateOfBirth ? `${member.dateOfBirth.getFullYear()}-${String(member.dateOfBirth.getMonth() + 1).padStart(2, '0')}-${String(member.dateOfBirth.getDate()).padStart(2, '0')}` : null)
 
     // Don't return the password hash
     const { password: _, ...memberWithoutPassword } = member
