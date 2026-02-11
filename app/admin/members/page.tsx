@@ -30,7 +30,7 @@ interface Member {
   }
 }
 
-export default function AdminMembersPage(): JSX.Element {
+export default function AdminMembersPage() {
   const [members, setMembers] = useState<Member[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string>('')
