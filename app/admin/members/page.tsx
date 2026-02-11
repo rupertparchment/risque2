@@ -313,15 +313,18 @@ export default function AdminMembersPage(): JSX.Element {
     : membersToShow.filter(m => m.membershipStatus === filterStatus)
   
   // Filter by search query (search in name, email, phone)
-  const filteredMembers = searchQuery.trim() === ''
-    ? statusFilteredMembers
-    : statusFilteredMembers.filter((m) => {
-        const query = searchQuery.toLowerCase()
-        const fullName = `${m.firstName} ${m.lastName}`.toLowerCase()
-        const email = (m.email || '').toLowerCase()
-        const phoneFormatted = formatPhoneNumber(m.phone).toLowerCase()
-        return fullName.includes(query) || email.includes(query) || phoneFormatted.includes(query)
-      })
+  const filteredMembers = React.useMemo(() => {
+    if (searchQuery.trim() === '') {
+      return statusFilteredMembers
+    }
+    const query = searchQuery.toLowerCase()
+    return statusFilteredMembers.filter((m) => {
+      const fullName = `${m.firstName} ${m.lastName}`.toLowerCase()
+      const email = (m.email || '').toLowerCase()
+      const phoneFormatted = formatPhoneNumber(m.phone).toLowerCase()
+      return fullName.includes(query) || email.includes(query) || phoneFormatted.includes(query)
+    })
+  }, [statusFilteredMembers, searchQuery])
 
   const getStatusColor = (status: string) => {
     switch (status) {
