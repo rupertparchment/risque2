@@ -34,11 +34,16 @@ export async function PUT(
       return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
     }
 
+    // Clean phone number - remove formatting, keep only digits
+    const cleanPhone = phone ? phone.replace(/\D/g, '') : null
+    // Only store if it's 10 digits
+    const phoneToStore = cleanPhone && cleanPhone.length === 10 ? cleanPhone : null
+
     const updateData: any = {
       email,
       firstName,
       lastName,
-      phone: phone || null,
+      phone: phoneToStore,
       dateOfBirth: dateOfBirth && dateOfBirth.trim() ? parseLocalDate(dateOfBirth) : null,
       membershipStatus,
       membershipStart: membershipStart && membershipStart.trim() ? parseLocalDate(membershipStart) : null,

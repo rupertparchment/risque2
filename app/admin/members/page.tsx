@@ -102,6 +102,39 @@ export default function AdminMembersPage() {
     return date || ''
   }
 
+  // Helper to format phone number to (111) 123-4567 format
+  const formatPhoneNumber = (phone: string | null): string => {
+    if (!phone) return ''
+    // Remove all non-digits
+    const digits = phone.replace(/\D/g, '')
+    // Format as (XXX) XXX-XXXX
+    if (digits.length === 10) {
+      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+    }
+    // Return as-is if not 10 digits (partial input)
+    return phone
+  }
+
+  // Helper to handle phone input changes
+  const handlePhoneChange = (value: string) => {
+    // Remove all non-digits
+    const digits = value.replace(/\D/g, '')
+    // Limit to 10 digits
+    const limited = digits.slice(0, 10)
+    // Format as user types
+    let formatted = ''
+    if (limited.length > 0) {
+      formatted = '(' + limited.slice(0, 3)
+      if (limited.length > 3) {
+        formatted += ') ' + limited.slice(3, 6)
+      }
+      if (limited.length > 6) {
+        formatted += '-' + limited.slice(6)
+      }
+    }
+    setFormData({ ...formData, phone: formatted })
+  }
+
   const handleEdit = (member: Member) => {
     setIsEditing(member)
     setIsCreating(false)
@@ -110,7 +143,7 @@ export default function AdminMembersPage() {
       password: '', // Don't pre-fill password
       firstName: member.firstName,
       lastName: member.lastName,
-      phone: member.phone || '',
+      phone: member.phone ? formatPhoneNumber(member.phone) : '',
       dateOfBirth: formatDateForInput(member.dateOfBirth),
       membershipStatus: member.membershipStatus,
       membershipStart: formatDateForInput(member.membershipStart),
@@ -438,7 +471,8 @@ export default function AdminMembersPage() {
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    placeholder="(111) 123-4567"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
@@ -630,7 +664,7 @@ export default function AdminMembersPage() {
                           {member.firstName} {member.lastName}
                         </div>
                         {member.phone && (
-                          <div className="text-sm text-gray-500">{member.phone}</div>
+                          <div className="text-sm text-gray-500">{formatPhoneNumber(member.phone)}</div>
                         )}
                       </td>
                       <td className="px-3 py-4">

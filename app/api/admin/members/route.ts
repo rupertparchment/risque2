@@ -131,6 +131,11 @@ export async function POST(request: NextRequest) {
       return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
     }
 
+    // Clean phone number - remove formatting, keep only digits
+    const cleanPhone = phone ? phone.replace(/\D/g, '') : null
+    // Only store if it's 10 digits
+    const phoneToStore = cleanPhone && cleanPhone.length === 10 ? cleanPhone : null
+
     // Create member
     const member = await prisma.user.create({
       data: {
@@ -138,7 +143,7 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         firstName,
         lastName,
-        phone: phone || null,
+        phone: phoneToStore,
         dateOfBirth: dateOfBirth && dateOfBirth.trim() ? parseLocalDate(dateOfBirth) : null,
         membershipStatus: membershipStatus || 'pending',
         membershipStart: membershipStart && membershipStart.trim() ? parseLocalDate(membershipStart) : null,
