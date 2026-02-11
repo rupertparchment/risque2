@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import Image from 'next/image'
 import { format } from 'date-fns'
-
-const prisma = new PrismaClient()
 
 // Make this page dynamic (fetch at runtime, not build time)
 export const dynamic = 'force-dynamic'
