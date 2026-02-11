@@ -15,6 +15,8 @@ interface Member {
   membershipStart: Date | null
   membershipEnd: Date | null
   stripeCustomerId: string | null
+  isDeleted?: boolean
+  deletedAt?: Date | null
   createdAt: Date
   updatedAt: Date
   _count: {
@@ -34,6 +36,7 @@ export default function AdminMembersPage() {
   const [isEditing, setIsEditing] = useState<Member | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [showDeleted, setShowDeleted] = useState(false)
   
   // Form state
   const [formData, setFormData] = useState({
@@ -56,7 +59,8 @@ export default function AdminMembersPage() {
     try {
       setIsLoading(true)
       setError('')
-      const response = await fetch('/api/admin/members')
+      const url = showDeleted ? '/api/admin/members?includeDeleted=true' : '/api/admin/members'
+      const response = await fetch(url)
       if (!response.ok) {
         throw new Error('Failed to fetch members')
       }
@@ -70,6 +74,10 @@ export default function AdminMembersPage() {
       setIsLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchMembers()
+  }, [showDeleted])
 
   const resetForm = () => {
     setFormData({
@@ -122,6 +130,30 @@ export default function AdminMembersPage() {
     } catch (error) {
       console.error('Failed to disable member:', error)
       setError('Failed to disable member. Please try again.')
+    }
+  }
+
+  const handleRestore = async (id: string, email: string) => {
+    if (!confirm(`Restore ${email}? They will be visible in the member list again.`)) return
+
+    try {
+      const response = await fetch(`/api/admin/members/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'restore' }),
+      })
+
+      if (response.ok) {
+        setSuccess('Member restored successfully!')
+        fetchMembers()
+        setTimeout(() => setSuccess(''), 3000)
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Failed to restore member')
+      }
+    } catch (error) {
+      console.error('Failed to restore member:', error)
+      setError('Failed to restore member. Please try again.')
     }
   }
 
@@ -201,9 +233,15 @@ export default function AdminMembersPage() {
     }
   }
 
+  // Filter by status, and separate deleted/active members
+  const activeMembers = members.filter(m => !m.isDeleted)
+  const deletedMembers = members.filter(m => m.isDeleted)
+  
+  const membersToShow = showDeleted ? deletedMembers : activeMembers
+  
   const filteredMembers = filterStatus === 'all' 
-    ? members 
-    : members.filter(m => m.membershipStatus === filterStatus)
+    ? membersToShow 
+    : membersToShow.filter(m => m.membershipStatus === filterStatus)
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -451,7 +489,7 @@ export default function AdminMembersPage() {
         )}
 
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex gap-4 items-center">
+          <div className="flex gap-4 items-center flex-wrap">
             <label className="text-sm font-medium text-gray-700">Filter by Status:</label>
             <select
               value={filterStatus}
@@ -464,8 +502,27 @@ export default function AdminMembersPage() {
               <option value="expired">Expired</option>
               <option value="cancelled">Cancelled</option>
             </select>
+            
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="showDeleted"
+                checked={showDeleted}
+                onChange={(e) => setShowDeleted(e.target.checked)}
+                className="w-4 h-4"
+              />
+              <label htmlFor="showDeleted" className="text-sm font-medium text-gray-700">
+                Show Disabled Members
+              </label>
+            </div>
+            
             <div className="ml-auto text-sm text-gray-600">
-              Showing {filteredMembers.length} of {members.length} members
+              Showing {filteredMembers.length} of {showDeleted ? deletedMembers.length : activeMembers.length} {showDeleted ? 'disabled' : 'active'} members
+              {deletedMembers.length > 0 && !showDeleted && (
+                <span className="text-orange-600 ml-2">
+                  ({deletedMembers.length} disabled)
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -515,7 +572,10 @@ export default function AdminMembersPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredMembers.map((member) => (
-                    <tr key={member.id} className="hover:bg-gray-50">
+                    <tr 
+                      key={member.id} 
+                      className={`hover:bg-gray-50 ${member.isDeleted ? 'bg-gray-100 opacity-75' : ''}`}
+                    >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {member.firstName} {member.lastName}
@@ -569,19 +629,38 @@ export default function AdminMembersPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEdit(member)}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(member.id, member.email)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Disable member (preserves all data)"
-                          >
-                            Disable
-                          </button>
+                          {!member.isDeleted ? (
+                            <>
+                              <button
+                                onClick={() => handleEdit(member)}
+                                className="text-blue-600 hover:text-blue-900"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDelete(member.id, member.email)}
+                                className="text-red-600 hover:text-red-900"
+                                title="Disable member (preserves all data)"
+                              >
+                                Disable
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleRestore(member.id, member.email)}
+                                className="text-green-600 hover:text-green-900 font-semibold"
+                                title="Restore member"
+                              >
+                                Restore
+                              </button>
+                              {member.deletedAt && (
+                                <span className="text-xs text-gray-500">
+                                  Disabled {format(new Date(member.deletedAt), 'MMM d, yyyy')}
+                                </span>
+                              )}
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

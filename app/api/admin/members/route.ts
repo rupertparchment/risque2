@@ -4,10 +4,15 @@ import bcrypt from 'bcryptjs'
 
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const includeDeleted = searchParams.get('includeDeleted') === 'true'
+
     const members = await prisma.user.findMany({
-      where: {
-        isDeleted: false, // Only show non-deleted members
-      },
+      where: includeDeleted
+        ? {} // Show all members including deleted
+        : {
+            isDeleted: false, // Only show non-deleted members
+          },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
