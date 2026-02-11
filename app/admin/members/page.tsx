@@ -44,6 +44,7 @@ export default function AdminMembersPage() {
   const [showDeleted, setShowDeleted] = useState(false)
   const [sortBy, setSortBy] = useState<string>('createdAt')
   const [sortOrder, setSortOrder] = useState<string>('desc')
+  const [searchQuery, setSearchQuery] = useState<string>('')
   
   // Form state
   const [formData, setFormData] = useState({
@@ -301,9 +302,21 @@ export default function AdminMembersPage() {
   
   const membersToShow = showDeleted ? deletedMembers : activeMembers
   
-  const filteredMembers = filterStatus === 'all' 
+  // Filter by status
+  const statusFilteredMembers = filterStatus === 'all' 
     ? membersToShow 
     : membersToShow.filter(m => m.membershipStatus === filterStatus)
+  
+  // Filter by search query (search in name, email, phone)
+  const filteredMembers = searchQuery.trim() === ''
+    ? statusFilteredMembers
+    : statusFilteredMembers.filter(m => {
+        const query = searchQuery.toLowerCase()
+        const fullName = `${m.firstName} ${m.lastName}`.toLowerCase()
+        const email = (m.email || '').toLowerCase()
+        const phone = formatPhoneNumber(m.phone).toLowerCase()
+        return fullName.includes(query) || email.includes(query) || phone.includes(query)
+      })
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -630,19 +643,35 @@ export default function AdminMembersPage() {
         )}
 
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex gap-4 items-center flex-wrap">
-            <label className="text-sm font-medium text-gray-700">Filter by Status:</label>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg"
-            >
-              <option value="all">All Members</option>
-              <option value="active">Active</option>
-              <option value="pending">Pending</option>
-              <option value="expired">Expired</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+          <div className="space-y-4">
+            {/* Search Box */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Search Members
+              </label>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name, email, or phone..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+            
+            {/* Filters */}
+            <div className="flex gap-4 items-center flex-wrap">
+              <label className="text-sm font-medium text-gray-700">Filter by Status:</label>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="all">All Members</option>
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+                <option value="expired">Expired</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
             
             <label className="text-sm font-medium text-gray-700">Sort by:</label>
             <select
@@ -679,6 +708,11 @@ export default function AdminMembersPage() {
             
             <div className="ml-auto text-sm text-gray-600">
               Showing {filteredMembers.length} of {showDeleted ? deletedMembers.length : activeMembers.length} {showDeleted ? 'disabled' : 'active'} members
+              {searchQuery && (
+                <span className="text-blue-600 ml-2">
+                  (filtered by "{searchQuery}")
+                </span>
+              )}
               {deletedMembers.length > 0 && !showDeleted && (
                 <span className="text-orange-600 ml-2">
                   ({deletedMembers.length} disabled)
