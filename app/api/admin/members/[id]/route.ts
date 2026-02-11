@@ -20,15 +20,22 @@ export async function PUT(
       password,
     } = body
 
+    // Helper function to parse date strings as local dates (not UTC)
+    const parseLocalDate = (dateString: string): Date => {
+      // Parse YYYY-MM-DD format as local date (not UTC)
+      const [year, month, day] = dateString.split('-').map(Number)
+      return new Date(year, month - 1, day) // month is 0-indexed in JS Date
+    }
+
     const updateData: any = {
       email,
       firstName,
       lastName,
       phone: phone || null,
-      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+      dateOfBirth: dateOfBirth ? parseLocalDate(dateOfBirth) : null,
       membershipStatus,
-      membershipStart: membershipStart ? new Date(membershipStart) : null,
-      membershipEnd: membershipEnd ? new Date(membershipEnd) : null,
+      membershipStart: membershipStart ? parseLocalDate(membershipStart) : null,
+      membershipEnd: membershipEnd ? parseLocalDate(membershipEnd) : null,
     }
 
     // Only update password if provided
