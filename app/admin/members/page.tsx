@@ -55,7 +55,12 @@ export default function AdminMembersPage() {
   }
 
   const handleSeedMembers = async () => {
-    if (!confirm('This will create 10 sample members. Continue?')) return
+    const forceRecreate = confirm(
+      'This will create 10 sample members.\n\n' +
+      'Some members may already exist. Do you want to recreate them?\n\n' +
+      'OK = Recreate existing members\n' +
+      'Cancel = Skip existing members'
+    )
 
     setIsSeeding(true)
     setSeedMessage('')
@@ -64,14 +69,20 @@ export default function AdminMembersPage() {
     try {
       const response = await fetch('/api/admin/seed-members', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force: forceRecreate }),
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        setSeedMessage(`✅ Successfully created ${data.created} sample members!`)
+        let message = `✅ Successfully created ${data.created} sample members!`
+        if (data.skipped && data.skipped > 0) {
+          message += `\n⏭️ Skipped ${data.skipped} existing members.`
+        }
+        setSeedMessage(message)
         fetchMembers() // Refresh the list
-        setTimeout(() => setSeedMessage(''), 5000)
+        setTimeout(() => setSeedMessage(''), 8000)
       } else {
         setError(data.error || 'Failed to seed members')
       }

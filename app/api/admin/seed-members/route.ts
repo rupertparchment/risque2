@@ -118,7 +118,11 @@ const sampleMembers = [
 
 export async function POST(request: NextRequest) {
   try {
+    const body = await request.json().catch(() => ({}))
+    const forceRecreate = body.force === true
+
     const createdMembers = []
+    const skippedMembers = []
     const errors = []
 
     for (const memberData of sampleMembers) {
@@ -129,8 +133,18 @@ export async function POST(request: NextRequest) {
         })
 
         if (existing) {
-          errors.push(`Member ${memberData.email} already exists`)
-          continue
+          if (forceRecreate) {
+            // Delete existing member and recreate
+            await prisma.user.delete({
+              where: { email: memberData.email },
+            })
+          } else {
+            skippedMembers.push({
+              email: memberData.email,
+              name: `${memberData.firstName} ${memberData.lastName}`,
+            })
+            continue
+          }
         }
 
         // Hash password
@@ -164,7 +178,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       created: createdMembers.length,
+      skipped: skippedMembers.length,
       members: createdMembers,
+      skipped: skippedMembers.length > 0 ? skippedMembers : undefined,
       errors: errors.length > 0 ? errors : undefined,
     })
   } catch (error: any) {
