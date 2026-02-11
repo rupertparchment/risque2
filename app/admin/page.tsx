@@ -106,7 +106,7 @@ export default function AdminPage() {
           </button>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Link
             href="/admin/events"
             className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
@@ -127,8 +127,16 @@ export default function AdminPage() {
             href="/admin/members"
             className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
           >
-            <h2 className="text-2xl font-bold mb-2">View Members</h2>
+            <h2 className="text-2xl font-bold mb-2">Manage Members</h2>
             <p className="text-gray-600">View and manage member accounts</p>
+          </Link>
+
+          <Link
+            href="/admin/users"
+            className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow border-2 border-purple-200"
+          >
+            <h2 className="text-2xl font-bold mb-2">Manage Users</h2>
+            <p className="text-gray-600">Manage backend users and assign roles</p>
           </Link>
         </div>
       </div>
