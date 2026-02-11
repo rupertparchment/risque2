@@ -28,6 +28,8 @@ export default function AdminMembersPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string>('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [isSeeding, setIsSeeding] = useState(false)
+  const [seedMessage, setSeedMessage] = useState<string>('')
 
   useEffect(() => {
     fetchMembers()
@@ -49,6 +51,35 @@ export default function AdminMembersPage() {
       setMembers([])
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleSeedMembers = async () => {
+    if (!confirm('This will create 10 sample members. Continue?')) return
+
+    setIsSeeding(true)
+    setSeedMessage('')
+    setError('')
+
+    try {
+      const response = await fetch('/api/admin/seed-members', {
+        method: 'POST',
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setSeedMessage(`✅ Successfully created ${data.created} sample members!`)
+        fetchMembers() // Refresh the list
+        setTimeout(() => setSeedMessage(''), 5000)
+      } else {
+        setError(data.error || 'Failed to seed members')
+      }
+    } catch (error) {
+      console.error('Failed to seed members:', error)
+      setError('Failed to seed members. Please try again.')
+    } finally {
+      setIsSeeding(false)
     }
   }
 
@@ -79,17 +110,32 @@ export default function AdminMembersPage() {
             <h1 className="text-4xl font-bold">Manage Members</h1>
             <p className="text-gray-600 mt-2">View and manage member accounts</p>
           </div>
-          <Link
-            href="/admin"
-            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg"
-          >
-            Back to Dashboard
-          </Link>
+          <div className="flex gap-4">
+            <button
+              onClick={handleSeedMembers}
+              disabled={isSeeding}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSeeding ? 'Creating...' : 'Create Sample Members'}
+            </button>
+            <Link
+              href="/admin"
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg"
+            >
+              Back to Dashboard
+            </Link>
+          </div>
         </div>
 
         {error && (
           <div className="bg-red-50 border-2 border-red-500 text-red-700 px-4 py-3 rounded mb-4 font-semibold">
             ⚠️ Error: {error}
+          </div>
+        )}
+
+        {seedMessage && (
+          <div className="bg-green-50 border-2 border-green-500 text-green-700 px-4 py-3 rounded mb-4 font-semibold">
+            {seedMessage}
           </div>
         )}
 
