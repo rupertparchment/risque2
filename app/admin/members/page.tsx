@@ -77,10 +77,17 @@ export default function AdminMembersPage() {
         throw new Error('Failed to fetch members')
       }
       const data = await response.json()
+      
+      // Check if there's an error in the response
+      if (data.error) {
+        throw new Error(data.error)
+      }
+      
       setMembers(data || [])
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch members:', error)
-      setError('Failed to load members. Please refresh the page.')
+      const errorMessage = error.message || 'Failed to load members. Please refresh the page.'
+      setError(errorMessage)
       setMembers([])
     } finally {
       setIsLoading(false)
