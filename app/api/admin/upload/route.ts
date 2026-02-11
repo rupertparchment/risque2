@@ -1,14 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+import { put } from '@vercel/blob'
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,11 +21,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024 // 5MB
+    // Validate file size (max 10MB for Vercel Blob)
+    const maxSize = 10 * 1024 * 1024 // 10MB
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: 'File size must be less than 5MB' },
+        { error: 'File size must be less than 10MB' },
         { status: 400 }
       )
     }
@@ -45,29 +36,14 @@ export async function POST(request: NextRequest) {
     const fileExt = file.name.split('.').pop()
     const fileName = `gallery/${timestamp}-${randomString}.${fileExt}`
 
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from('gallery-images')
-      .upload(fileName, file, {
-        contentType: file.type,
-        upsert: false,
-      })
-
-    if (error) {
-      console.error('Supabase upload error:', error)
-      return NextResponse.json(
-        { error: `Upload failed: ${error.message}` },
-        { status: 500 }
-      )
-    }
-
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('gallery-images')
-      .getPublicUrl(fileName)
+    // Upload to Vercel Blob
+    const blob = await put(fileName, file, {
+      access: 'public',
+      contentType: file.type,
+    })
 
     return NextResponse.json({
-      url: urlData.publicUrl,
+      url: blob.url,
       fileName: fileName,
     })
   } catch (error: any) {
