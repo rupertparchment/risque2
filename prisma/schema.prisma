@@ -27,11 +27,15 @@ model User {
   membershipStart DateTime?
   membershipEnd   DateTime?
   stripeCustomerId String?
+  receiveEmails Boolean   @default(true) // Whether member wants to receive emails
+  digitalSignature String? // Digital signature for club rules agreement
+  referralSourceId String? // How did they hear about us
   isDeleted     Boolean   @default(false) // Soft delete flag
   deletedAt     DateTime? // When the member was deleted
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
+  referralSource ReferralSource? @relation(fields: [referralSourceId], references: [id])
   payments      Payment[]
   rsvps         RSVP[]
 }
@@ -41,13 +45,19 @@ model Event {
   title         String
   description   String
   eventDate     DateTime
-  eventTime     String
+  eventTime     String?
   eventType     String    // regular, themed, special
   theme         String?   // for themed events
   flyerImage    String?   // URL to flyer image
   interiorImage String?   // URL to interior photo
-  capacity      Int       @default(150)
-  price         Float     @default(100.00) // per couple
+  capacity      Int?
+  price         Float?    // deprecated - use priceCouple, priceMale, priceFemale
+  priceCouple   Float?
+  priceMale     Float?
+  priceFemale   Float?
+  totalCouples  Int       @default(0) // Attendance tracking
+  totalMales    Int       @default(0) // Attendance tracking
+  totalFemales  Int       @default(0) // Attendance tracking
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -97,6 +107,17 @@ model GalleryImage {
   displayOrder  Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+model ReferralSource {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayOrder Int     @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  users       User[]
 }
 
 model AdminUser {

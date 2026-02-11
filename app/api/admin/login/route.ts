@@ -36,7 +36,15 @@ export async function POST(request: NextRequest) {
     const adminPassword = process.env.ADMIN_PASSWORD
 
     if (email === adminEmail && password === adminPassword) {
-      return NextResponse.json({ success: true })
+      return NextResponse.json({ 
+        success: true,
+        user: {
+          email: email,
+          firstName: 'Administrator',
+          lastName: '',
+          role: 'administrator', // Env var login defaults to administrator
+        }
+      })
     }
 
     return NextResponse.json(

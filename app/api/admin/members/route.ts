@@ -45,6 +45,15 @@ export async function GET(request: NextRequest) {
           membershipStart: true,
           membershipEnd: true,
           stripeCustomerId: true,
+          receiveEmails: true,
+          digitalSignature: true,
+          referralSourceId: true,
+          referralSource: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
           isDeleted: true,
           deletedAt: true,
           createdAt: true,
@@ -58,47 +67,81 @@ export async function GET(request: NextRequest) {
         },
       })
     } catch (dbError: any) {
-      // If address columns don't exist, try without them
-      if (dbError.message && (dbError.message.includes('addressLine1') || dbError.message.includes('Unknown column') || dbError.message.includes('column') && dbError.message.includes('does not exist'))) {
-        console.log('Address columns not found, fetching without them...')
-        members = await prisma.user.findMany({
-          where: includeDeleted
-            ? {}
-            : {
-                isDeleted: false,
-              },
-          orderBy,
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            phone: true,
-            dateOfBirth: true,
-            membershipStatus: true,
-            membershipStart: true,
-            membershipEnd: true,
-            stripeCustomerId: true,
-            isDeleted: true,
-            deletedAt: true,
-            createdAt: true,
-            updatedAt: true,
-            _count: {
-              select: {
-                payments: true,
-                rsvps: true,
+      // If columns don't exist, try without them
+      if (dbError.message && (dbError.message.includes('addressLine1') || dbError.message.includes('receiveEmails') || dbError.message.includes('digitalSignature') || dbError.message.includes('referralSourceId') || dbError.message.includes('Unknown column') || dbError.message.includes('column') && dbError.message.includes('does not exist'))) {
+        console.log('Some columns not found, fetching without them...')
+        try {
+          members = await prisma.user.findMany({
+            where: includeDeleted
+              ? {}
+              : {
+                  isDeleted: false,
+                },
+            orderBy,
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              phone: true,
+              dateOfBirth: true,
+              membershipStatus: true,
+              membershipStart: true,
+              membershipEnd: true,
+              stripeCustomerId: true,
+              isDeleted: true,
+              deletedAt: true,
+              createdAt: true,
+              updatedAt: true,
+              _count: {
+                select: {
+                  payments: true,
+                  rsvps: true,
+                },
               },
             },
-          },
-        })
-        // Add null address fields to each member
+          })
+        } catch (fallbackError: any) {
+          // If even basic fields fail, try minimal select
+          console.log('Fallback query also failed, trying minimal select...')
+          members = await prisma.user.findMany({
+            where: includeDeleted
+              ? {}
+              : {
+                  isDeleted: false,
+                },
+            orderBy,
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              phone: true,
+              membershipStatus: true,
+              isDeleted: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          })
+        }
+        // Add null/default fields to each member
         members = members.map((m: any) => ({
           ...m,
-          addressLine1: null,
-          addressLine2: null,
-          city: null,
-          state: null,
-          zip: null,
+          dateOfBirth: m.dateOfBirth || null,
+          addressLine1: m.addressLine1 || null,
+          addressLine2: m.addressLine2 || null,
+          city: m.city || null,
+          state: m.state || null,
+          zip: m.zip || null,
+          membershipStart: m.membershipStart || null,
+          membershipEnd: m.membershipEnd || null,
+          stripeCustomerId: m.stripeCustomerId || null,
+          deletedAt: m.deletedAt || null,
+          receiveEmails: m.receiveEmails !== undefined ? m.receiveEmails : true,
+          digitalSignature: m.digitalSignature || null,
+          referralSourceId: m.referralSourceId || null,
+          referralSource: m.referralSource || null,
+          _count: m._count || { payments: 0, rsvps: 0 },
         }))
       } else {
         throw dbError
@@ -163,6 +206,9 @@ export async function POST(request: NextRequest) {
       membershipStatus,
       membershipStart,
       membershipEnd,
+      receiveEmails,
+      digitalSignature,
+      referralSourceId,
     } = body
 
     // Validate required fields
@@ -225,6 +271,9 @@ export async function POST(request: NextRequest) {
         membershipStatus: membershipStatus || 'pending',
         membershipStart: membershipStart && membershipStart.trim() ? parseLocalDate(membershipStart) : null,
         membershipEnd: membershipEnd && membershipEnd.trim() ? parseLocalDate(membershipEnd) : null,
+        receiveEmails: receiveEmails !== undefined ? receiveEmails : true,
+        digitalSignature: digitalSignature || null,
+        referralSourceId: referralSourceId || null,
       },
       select: {
         id: true,
@@ -242,6 +291,15 @@ export async function POST(request: NextRequest) {
         membershipStart: true,
         membershipEnd: true,
         stripeCustomerId: true,
+        receiveEmails: true,
+        digitalSignature: true,
+        referralSourceId: true,
+        referralSource: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         createdAt: true,
         updatedAt: true,
         _count: {

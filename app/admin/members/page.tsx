@@ -4,26 +4,39 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 
+interface ReferralSource {
+  id: string
+  name: string
+  displayOrder: number
+}
+
 interface Member {
   id: string
   email: string
   firstName: string
   lastName: string
   phone: string | null
-  dateOfBirth: string | null // YYYY-MM-DD format
+  dateOfBirth: string | null
   addressLine1: string | null
   addressLine2: string | null
   city: string | null
   state: string | null
   zip: string | null
   membershipStatus: string
-  membershipStart: string | null // YYYY-MM-DD format
-  membershipEnd: string | null // YYYY-MM-DD format
+  membershipStart: string | null
+  membershipEnd: string | null
   stripeCustomerId: string | null
+  receiveEmails?: boolean
+  digitalSignature?: string | null
+  referralSourceId?: string | null
+  referralSource?: {
+    id: string
+    name: string
+  } | null
   isDeleted?: boolean
   deletedAt?: string | null
-  createdAt: string // ISO string
-  updatedAt: string // ISO string
+  createdAt: string
+  updatedAt: string
   _count: {
     payments: number
     rsvps: number
@@ -32,6 +45,7 @@ interface Member {
 
 export default function AdminMembersPage() {
   const [members, setMembers] = useState<Member[]>([])
+  const [referralSources, setReferralSources] = useState<ReferralSource[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
@@ -46,7 +60,6 @@ export default function AdminMembersPage() {
   const [sortOrder, setSortOrder] = useState<string>('desc')
   const [searchQuery, setSearchQuery] = useState<string>('')
   
-  // Form state
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -62,6 +75,9 @@ export default function AdminMembersPage() {
     membershipStatus: 'pending',
     membershipStart: '',
     membershipEnd: '',
+    receiveEmails: true,
+    digitalSignature: '',
+    referralSourceId: '',
   })
 
   const fetchMembers = async () => {
@@ -78,12 +94,9 @@ export default function AdminMembersPage() {
         throw new Error('Failed to fetch members')
       }
       const data = await response.json()
-      
-      // Check if there's an error in the response
       if (data.error) {
         throw new Error(data.error)
       }
-      
       setMembers(data || [])
     } catch (error: any) {
       console.error('Failed to fetch members:', error)
@@ -97,18 +110,27 @@ export default function AdminMembersPage() {
 
   useEffect(() => {
     fetchMembers()
+    fetchReferralSources()
   }, [showDeleted, sortBy, sortOrder])
 
-  // Helper to format phone number to (111) 123-4567 format
+  const fetchReferralSources = async () => {
+    try {
+      const response = await fetch('/api/admin/referral-sources')
+      if (response.ok) {
+        const data = await response.json()
+        setReferralSources(data || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch referral sources:', error)
+    }
+  }
+
   const formatPhoneNumber = (phone: string | null): string => {
     if (!phone) return ''
-    // Remove all non-digits
     const digits = phone.replace(/\D/g, '')
-    // Format as (XXX) XXX-XXXX
     if (digits.length === 10) {
       return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
     }
-    // Return as-is if not 10 digits (partial input)
     return phone
   }
 
@@ -128,23 +150,21 @@ export default function AdminMembersPage() {
       membershipStatus: 'pending',
       membershipStart: '',
       membershipEnd: '',
+      receiveEmails: true,
+      digitalSignature: '',
+      referralSourceId: '',
     })
     setIsEditing(null)
     setIsCreating(false)
   }
 
-  // Helper to format date for input field (simple - dates come as YYYY-MM-DD strings)
   const formatDateForInput = (date: string | null): string => {
     return date || ''
   }
 
-  // Helper to handle phone input changes
   const handlePhoneChange = (value: string) => {
-    // Remove all non-digits
     const digits = value.replace(/\D/g, '')
-    // Limit to 10 digits
     const limited = digits.slice(0, 10)
-    // Format as user types
     let formatted = ''
     if (limited.length > 0) {
       formatted = '(' + limited.slice(0, 3)
@@ -163,7 +183,7 @@ export default function AdminMembersPage() {
     setIsCreating(false)
     setFormData({
       email: member.email,
-      password: '', // Don't pre-fill password
+      password: '',
       firstName: member.firstName,
       lastName: member.lastName,
       phone: member.phone ? formatPhoneNumber(member.phone) : '',
@@ -176,7 +196,17 @@ export default function AdminMembersPage() {
       membershipStatus: member.membershipStatus,
       membershipStart: formatDateForInput(member.membershipStart),
       membershipEnd: formatDateForInput(member.membershipEnd),
+      receiveEmails: member.receiveEmails !== undefined ? member.receiveEmails : true,
+      digitalSignature: member.digitalSignature || '',
+      referralSourceId: member.referralSourceId || '',
     })
+    // Scroll to form after a brief delay to ensure it's rendered
+    setTimeout(() => {
+      const formElement = document.querySelector('form')
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }, 100)
   }
 
   const handleDelete = async (id: string, email: string) => {
@@ -237,10 +267,16 @@ export default function AdminMembersPage() {
         : '/api/admin/members'
       const method = isEditing ? 'PUT' : 'POST'
 
+      // Don't send digitalSignature when editing (it's read-only for admins)
+      const submitData = { ...formData }
+      if (isEditing) {
+        delete submitData.digitalSignature
+      }
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       })
 
       const data = await response.json()
@@ -288,7 +324,7 @@ export default function AdminMembersPage() {
           message += `\n⏭️ Skipped ${data.skipped} existing members.`
         }
         setSeedMessage(message)
-        fetchMembers() // Refresh the list
+        fetchMembers()
         setTimeout(() => setSeedMessage(''), 8000)
       } else {
         setError(data.error || 'Failed to seed members')
@@ -301,30 +337,23 @@ export default function AdminMembersPage() {
     }
   }
 
-  // Filter by status, and separate deleted/active members
   const activeMembers = members.filter((m) => !m.isDeleted)
   const deletedMembers = members.filter((m) => m.isDeleted)
-  
   const membersToShow = showDeleted ? deletedMembers : activeMembers
   
-  // Filter by status
   const statusFilteredMembers = filterStatus === 'all' 
     ? membersToShow 
     : membersToShow.filter((m) => m.membershipStatus === filterStatus)
   
-  // Filter by search query (search in name, email, phone)
-  const filteredMembers = (() => {
-    if (!searchQuery.trim()) {
-      return statusFilteredMembers
-    }
-    const searchLower = searchQuery.toLowerCase()
-    return statusFilteredMembers.filter((m) => {
-      const name = `${m.firstName} ${m.lastName}`.toLowerCase()
-      const email = (m.email || '').toLowerCase()
-      const phone = formatPhoneNumber(m.phone).toLowerCase()
-      return name.includes(searchLower) || email.includes(searchLower) || phone.includes(searchLower)
-    })
-  })()
+  const filteredMembers = searchQuery.trim() === ''
+    ? statusFilteredMembers
+    : statusFilteredMembers.filter((m) => {
+        const query = searchQuery.toLowerCase()
+        const fullName = `${m.firstName} ${m.lastName}`.toLowerCase()
+        const email = (m.email || '').toLowerCase()
+        const phone = formatPhoneNumber(m.phone).toLowerCase()
+        return fullName.includes(query) || email.includes(query) || phone.includes(query)
+      })
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -341,14 +370,12 @@ export default function AdminMembersPage() {
     }
   }
 
-  // Helper to parse YYYY-MM-DD string to Date object
   const parseDateString = (dateStr: string | null): Date | null => {
     if (!dateStr) return null
     const [year, month, day] = dateStr.split('-').map(Number)
     return new Date(year, month - 1, day)
   }
 
-  // Helper to format YYYY-MM-DD string for display
   const formatDateDisplay = (dateStr: string | null): string => {
     if (!dateStr) return 'Not set'
     const date = parseDateString(dateStr)
@@ -356,7 +383,7 @@ export default function AdminMembersPage() {
     return format(date, 'MMM d, yyyy')
   }
 
-  const calculateMembershipDuration = (startDate: string | null, endDate: string | null) => {
+  const calculateMembershipDuration = (startDate: string | null, endDate: string | null): string => {
     if (!startDate) return 'Not a member yet'
     
     const start = parseDateString(startDate)
@@ -364,18 +391,14 @@ export default function AdminMembersPage() {
     
     const end = endDate ? parseDateString(endDate) : null
     const now = new Date()
-    
-    // Use end date if it's in the past, otherwise use current date
     const referenceDate = (end && end < now) ? end : now
     
     if (referenceDate < start) return 'Not started'
     
     const years = referenceDate.getFullYear() - start.getFullYear()
     const months = referenceDate.getMonth() - start.getMonth()
-    
     let totalMonths = years * 12 + months
     
-    // Adjust if day hasn't passed yet this month
     if (referenceDate.getDate() < start.getDate()) {
       totalMonths--
     }
@@ -387,7 +410,7 @@ export default function AdminMembersPage() {
       return 'Less than 1 month'
     }
     
-    const parts = []
+    const parts: string[] = []
     if (finalYears > 0) {
       parts.push(`${finalYears} ${finalYears === 1 ? 'year' : 'years'}`)
     }
@@ -398,10 +421,8 @@ export default function AdminMembersPage() {
     return parts.join(', ')
   }
 
-  // Render the component UI
-  const renderContent = () => {
-    return (
-      <div className="min-h-screen bg-gray-50 py-12">
+  return (
+    <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -452,9 +473,8 @@ export default function AdminMembersPage() {
           </div>
         )}
 
-        {/* Create/Edit Form */}
         {(isCreating || isEditing) && (
-          <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-6" id="member-form">
             <h2 className="text-2xl font-bold mb-4">
               {isEditing ? 'Edit Member' : 'Create New Member'}
             </h2>
@@ -632,6 +652,61 @@ export default function AdminMembersPage() {
                   />
                 </div>
               </div>
+              
+              {/* Additional Member Information Section */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Member Information</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Receive Emails *
+                    </label>
+                    <select
+                      value={formData.receiveEmails ? 'yes' : 'no'}
+                      onChange={(e) => setFormData({ ...formData, receiveEmails: e.target.value === 'yes' })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      required
+                    >
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      How Did You Hear About Us?
+                    </label>
+                    <select
+                      value={formData.referralSourceId}
+                      onChange={(e) => setFormData({ ...formData, referralSourceId: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">Select an option...</option>
+                      {referralSources.map((source) => (
+                        <option key={source.id} value={source.id}>
+                          {source.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {isEditing && formData.digitalSignature && (
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Digital Signature (Read-Only)
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.digitalSignature}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                        disabled
+                        readOnly
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        This signature was provided by the member during their application and cannot be edited by administrators.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="flex gap-4">
                 <button
                   type="submit"
@@ -654,7 +729,6 @@ export default function AdminMembersPage() {
 
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="space-y-4">
-            {/* Search Box */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Search Members
@@ -668,7 +742,6 @@ export default function AdminMembersPage() {
               />
             </div>
             
-            {/* Filters */}
             <div className="flex gap-4 items-center flex-wrap">
               <label className="text-sm font-medium text-gray-700">Filter by Status:</label>
               <select
@@ -683,51 +756,52 @@ export default function AdminMembersPage() {
                 <option value="cancelled">Cancelled</option>
               </select>
             
-            <label className="text-sm font-medium text-gray-700">Sort by:</label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg"
-            >
-              <option value="createdAt">Date Joined</option>
-              <option value="firstName">First Name</option>
-              <option value="lastName">Last Name</option>
-            </select>
-            
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg"
-            >
-              <option value="asc">Ascending (A-Z)</option>
-              <option value="desc">Descending (Z-A)</option>
-            </select>
-            
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="showDeleted"
-                checked={showDeleted}
-                onChange={(e) => setShowDeleted(e.target.checked)}
-                className="w-4 h-4"
-              />
-              <label htmlFor="showDeleted" className="text-sm font-medium text-gray-700">
-                Show Disabled Members
-              </label>
-            </div>
-            
-            <div className="ml-auto text-sm text-gray-600">
-              Showing {filteredMembers.length} of {showDeleted ? deletedMembers.length : activeMembers.length} {showDeleted ? 'disabled' : 'active'} members
-              {searchQuery && (
-                <span className="text-blue-600 ml-2">
-                  (filtered by "{searchQuery}")
-                </span>
-              )}
-              {deletedMembers.length > 0 && !showDeleted && (
-                <span className="text-orange-600 ml-2">
-                  ({deletedMembers.length} disabled)
-                </span>
-              )}
+              <label className="text-sm font-medium text-gray-700">Sort by:</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="createdAt">Date Joined</option>
+                <option value="firstName">First Name</option>
+                <option value="lastName">Last Name</option>
+              </select>
+              
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="asc">Ascending (A-Z)</option>
+                <option value="desc">Descending (Z-A)</option>
+              </select>
+              
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="showDeleted"
+                  checked={showDeleted}
+                  onChange={(e) => setShowDeleted(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <label htmlFor="showDeleted" className="text-sm font-medium text-gray-700">
+                  Show Disabled Members
+                </label>
+              </div>
+              
+              <div className="ml-auto text-sm text-gray-600">
+                Showing {filteredMembers.length} of {showDeleted ? deletedMembers.length : activeMembers.length} {showDeleted ? 'disabled' : 'active'} members
+                {searchQuery && (
+                  <span className="text-blue-600 ml-2">
+                    (filtered by "{searchQuery}")
+                  </span>
+                )}
+                {deletedMembers.length > 0 && !showDeleted && (
+                  <span className="text-orange-600 ml-2">
+                    ({deletedMembers.length} disabled)
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -882,8 +956,5 @@ export default function AdminMembersPage() {
         )}
       </div>
     </div>
-    )
-  }
-
-  return renderContent()
+  )
 }

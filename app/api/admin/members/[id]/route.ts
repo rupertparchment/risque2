@@ -25,6 +25,15 @@ export async function GET(
         membershipStart: true,
         membershipEnd: true,
         stripeCustomerId: true,
+        receiveEmails: true,
+        digitalSignature: true,
+        referralSourceId: true,
+        referralSource: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         isDeleted: true,
         deletedAt: true,
         createdAt: true,
@@ -91,6 +100,9 @@ export async function PUT(
       membershipStart,
       membershipEnd,
       password,
+      receiveEmails,
+      digitalSignature,
+      referralSourceId,
     } = body
 
     // Helper function to parse YYYY-MM-DD date strings and store as UTC midnight
@@ -129,6 +141,11 @@ export async function PUT(
     if (city !== undefined) updateData.city = city || null
     if (state !== undefined) updateData.state = state || null
     if (zip !== undefined) updateData.zip = zip || null
+
+    // Add new fields
+    if (receiveEmails !== undefined) updateData.receiveEmails = receiveEmails
+    if (digitalSignature !== undefined) updateData.digitalSignature = digitalSignature || null
+    if (referralSourceId !== undefined) updateData.referralSourceId = referralSourceId || null
 
     // Only update password if provided
     if (password && password.trim()) {

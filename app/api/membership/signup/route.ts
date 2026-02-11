@@ -9,7 +9,22 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password, firstName, lastName, phone, dateOfBirth } = body
+    const {
+      email,
+      password,
+      firstName,
+      lastName,
+      phone,
+      dateOfBirth,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      zip,
+      receiveEmails,
+      digitalSignature,
+      referralSourceId,
+    } = body
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -25,6 +40,22 @@ export async function POST(request: NextRequest) {
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10)
+
+    // Helper function to parse date strings
+    const parseLocalDate = (dateString: string): Date => {
+      if (!dateString || dateString.trim() === '') {
+        throw new Error('Empty date string')
+      }
+      const [year, month, day] = dateString.split('-').map(Number)
+      if (isNaN(year) || isNaN(month) || isNaN(day)) {
+        throw new Error('Invalid date format')
+      }
+      return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
+    }
+
+    // Clean phone number
+    const cleanPhone = phone ? phone.replace(/\D/g, '') : null
+    const phoneToStore = cleanPhone && cleanPhone.length === 10 ? cleanPhone : null
 
     // Create Stripe customer
     const customer = await stripe.customers.create({
@@ -43,8 +74,16 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         firstName,
         lastName,
-        phone: phone || null,
-        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        phone: phoneToStore,
+        dateOfBirth: dateOfBirth && dateOfBirth.trim() ? parseLocalDate(dateOfBirth) : null,
+        addressLine1: addressLine1 || null,
+        addressLine2: addressLine2 || null,
+        city: city || null,
+        state: state || null,
+        zip: zip || null,
+        receiveEmails: receiveEmails !== undefined ? receiveEmails : true,
+        digitalSignature: digitalSignature || null,
+        referralSourceId: referralSourceId || null,
         stripeCustomerId: customer.id,
         membershipStatus: 'pending',
       },

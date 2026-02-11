@@ -38,6 +38,8 @@ export default function AdminUsersPage() {
   const [isEditing, setIsEditing] = useState<AdminUser | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null)
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
   
   const [formData, setFormData] = useState({
     email: '',
@@ -49,6 +51,11 @@ export default function AdminUsersPage() {
   })
 
   useEffect(() => {
+    // Get current logged-in user info
+    const email = localStorage.getItem('admin_email')
+    const role = localStorage.getItem('admin_role')
+    setCurrentUserEmail(email)
+    setCurrentUserRole(role)
     fetchUsers()
   }, [showDeleted])
 
@@ -144,6 +151,30 @@ export default function AdminUsersPage() {
     }
   }
 
+  const handlePermanentDelete = async (id: string, email: string) => {
+    if (!confirm(`⚠️ WARNING: This will PERMANENTLY delete ${email}.\n\nThis action cannot be undone. All data associated with this user will be permanently removed.\n\nAre you absolutely sure?`)) return
+
+    try {
+      const response = await fetch(`/api/admin/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'permanentDelete' }),
+      })
+
+      if (response.ok) {
+        setSuccess('User permanently deleted successfully!')
+        fetchUsers()
+        setTimeout(() => setSuccess(''), 3000)
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Failed to delete user')
+      }
+    } catch (error) {
+      console.error('Failed to delete user:', error)
+      setError('Failed to delete user. Please try again.')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSaving(true)
@@ -156,10 +187,17 @@ export default function AdminUsersPage() {
         : '/api/admin/users'
       const method = isEditing ? 'PUT' : 'POST'
 
+      const currentEmail = localStorage.getItem('admin_email') || ''
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-admin-email': currentEmail,
+        },
+        body: JSON.stringify({
+          ...formData,
+          requesterEmail: currentEmail,
+        }),
       })
 
       const data = await response.json()
@@ -191,6 +229,14 @@ export default function AdminUsersPage() {
           <div>
             <h1 className="text-4xl font-bold">Manage Admin Users</h1>
             <p className="text-gray-600 mt-2">Manage backend users and assign roles</p>
+            {currentUserEmail && (
+              <p className="text-sm text-gray-500 mt-1">
+                Logged in as: <span className="font-medium">{currentUserEmail}</span>
+                {currentUserRole && (
+                  <span className="ml-2">({currentUserRole})</span>
+                )}
+              </p>
+            )}
           </div>
           <div className="flex gap-4">
             <button
@@ -289,6 +335,7 @@ export default function AdminUsersPage() {
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     required
+                    disabled={isEditing && currentUserRole !== 'administrator'}
                   >
                     <option value="administrator">Administrator</option>
                     <option value="editor">Editor</option>
@@ -297,6 +344,16 @@ export default function AdminUsersPage() {
                   <p className="text-xs text-gray-500 mt-1">
                     {ROLE_DESCRIPTIONS[formData.role as keyof typeof ROLE_DESCRIPTIONS]}
                   </p>
+                  {isEditing && currentUserRole !== 'administrator' && (
+                    <p className="text-xs text-red-500 mt-1 font-medium">
+                      ⚠️ Only administrators can change roles. You can edit other fields but not the role.
+                    </p>
+                  )}
+                  {isEditing && currentUserRole === 'administrator' && (
+                    <p className="text-xs text-green-600 mt-1">
+                      ✓ You can change roles as an administrator.
+                    </p>
+                  )}
                 </div>
                 {isEditing && (
                   <div className="flex items-center">
@@ -393,14 +450,19 @@ export default function AdminUsersPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {usersToShow.map((user) => (
+                  {usersToShow.map((user) => {
+                    const isCurrentUser = user.email === currentUserEmail
+                    return (
                     <tr 
                       key={user.id} 
-                      className={`hover:bg-gray-50 ${user.isDeleted ? 'bg-gray-100 opacity-75' : ''}`}
+                      className={`hover:bg-gray-50 ${user.isDeleted ? 'bg-gray-100 opacity-75' : ''} ${isCurrentUser ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {user.firstName} {user.lastName}
+                          {isCurrentUser && (
+                            <span className="ml-2 text-xs font-semibold text-blue-600">(You)</span>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -444,14 +506,19 @@ export default function AdminUsersPage() {
                                 onClick={() => handleEdit(user)}
                                 className="text-blue-600 hover:text-blue-900"
                               >
-                                Edit
+                                {isCurrentUser ? 'Edit My Profile' : 'Edit'}
                               </button>
-                              <button
-                                onClick={() => handleDelete(user.id, user.email)}
-                                className="text-red-600 hover:text-red-900"
-                              >
-                                Disable
-                              </button>
+                              {!isCurrentUser && (
+                                <button
+                                  onClick={() => handleDelete(user.id, user.email)}
+                                  className="text-red-600 hover:text-red-900"
+                                >
+                                  Disable
+                                </button>
+                              )}
+                              {isCurrentUser && (
+                                <span className="text-xs text-gray-500">(Cannot disable yourself)</span>
+                              )}
                             </>
                           ) : (
                             <>
@@ -460,6 +527,13 @@ export default function AdminUsersPage() {
                                 className="text-green-600 hover:text-green-900 font-semibold"
                               >
                                 Restore
+                              </button>
+                              <button
+                                onClick={() => handlePermanentDelete(user.id, user.email)}
+                                className="text-red-600 hover:text-red-900 font-semibold"
+                                title="Permanently delete user (cannot be undone)"
+                              >
+                                Delete
                               </button>
                               {user.deletedAt && (
                                 <span className="text-xs text-gray-500">
@@ -471,7 +545,8 @@ export default function AdminUsersPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

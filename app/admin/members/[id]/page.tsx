@@ -5,6 +5,11 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 
+interface ReferralSource {
+  id: string
+  name: string
+}
+
 interface Member {
   id: string
   email: string
@@ -21,6 +26,13 @@ interface Member {
   membershipStart: string | null
   membershipEnd: string | null
   stripeCustomerId: string | null
+  receiveEmails?: boolean
+  digitalSignature?: string | null
+  referralSourceId?: string | null
+  referralSource?: {
+    id: string
+    name: string
+  } | null
   isDeleted?: boolean
   deletedAt?: string | null
   createdAt: string
@@ -33,6 +45,7 @@ export default function MemberDetailPage() {
   const memberId = params.id as string
 
   const [member, setMember] = useState<Member | null>(null)
+  const [referralSources, setReferralSources] = useState<ReferralSource[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
@@ -53,11 +66,27 @@ export default function MemberDetailPage() {
     membershipStatus: 'pending',
     membershipStart: '',
     membershipEnd: '',
+    receiveEmails: true,
+    digitalSignature: '',
+    referralSourceId: '',
   })
 
   useEffect(() => {
     fetchMember()
+    fetchReferralSources()
   }, [memberId])
+
+  const fetchReferralSources = async () => {
+    try {
+      const response = await fetch('/api/admin/referral-sources')
+      if (response.ok) {
+        const data = await response.json()
+        setReferralSources(data || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch referral sources:', error)
+    }
+  }
 
   const fetchMember = async () => {
     try {
@@ -100,6 +129,9 @@ export default function MemberDetailPage() {
         membershipStatus: data.membershipStatus,
         membershipStart: formatDateForInput(data.membershipStart),
         membershipEnd: formatDateForInput(data.membershipEnd),
+        receiveEmails: data.receiveEmails !== undefined ? data.receiveEmails : true,
+        digitalSignature: data.digitalSignature || '',
+        referralSourceId: data.referralSourceId || '',
       })
     } catch (error) {
       console.error('Failed to fetch member:', error)
@@ -143,11 +175,15 @@ export default function MemberDetailPage() {
     setSuccess('')
 
     try {
-      console.log('Submitting form data:', formData)
+      // Don't send digitalSignature (it's read-only for admins)
+      const submitData = { ...formData }
+      delete submitData.digitalSignature
+      
+      console.log('Submitting form data:', submitData)
       const response = await fetch(`/api/admin/members/${memberId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       })
 
       console.log('Response status:', response.status)
@@ -452,6 +488,61 @@ export default function MemberDetailPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Additional Member Information */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">Additional Member Information</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Receive Emails *
+                  </label>
+                  <select
+                    value={formData.receiveEmails ? 'yes' : 'no'}
+                    onChange={(e) => setFormData({ ...formData, receiveEmails: e.target.value === 'yes' })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    required
+                  >
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    How Did You Hear About Us?
+                  </label>
+                  <select
+                    value={formData.referralSourceId}
+                    onChange={(e) => setFormData({ ...formData, referralSourceId: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="">Select an option...</option>
+                    {referralSources.map((source) => (
+                      <option key={source.id} value={source.id}>
+                        {source.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {formData.digitalSignature && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Digital Signature (Read-Only)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.digitalSignature}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                      disabled
+                      readOnly
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      This signature was provided by the member during their application and cannot be edited by administrators.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -3,13 +3,39 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { format } from 'date-fns'
 
+// Helper to parse date string as local date (avoid timezone issues)
+function parseLocalDate(dateString: string): Date {
+  // If dateString is in YYYY-MM-DD format, parse it as local date
+  if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}/)) {
+    const [year, month, day] = dateString.split('T')[0].split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+  // Otherwise, parse normally
+  return new Date(dateString)
+}
+
+// Helper to format date consistently
+function formatEventDate(dateString: string): string {
+  const date = parseLocalDate(dateString)
+  return format(date, 'EEEE, MMM d, yyyy')
+}
+
 // Make this page dynamic (fetch at runtime, not build time)
 export const dynamic = 'force-dynamic'
 
 async function getEvents() {
   try {
+    // Get today's date at midnight (start of day) for comparison
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
     const events = await prisma.event.findMany({
-      where: { isActive: true },
+      where: { 
+        isActive: true,
+        eventDate: {
+          gte: today, // Only events on or after today
+        },
+      },
       orderBy: { eventDate: 'asc' },
     })
     return events
@@ -50,33 +76,31 @@ export default async function EventsPage() {
                   </div>
                 )}
                 <div className="p-6">
-                  <div className="flex justify-between items-start mb-2">
-                    <h2 className="text-2xl font-bold">{event.title}</h2>
+                  <h2 className="text-2xl font-bold mb-2">
+                    {event.title}
                     {event.theme && (
-                      <span className="bg-primary-100 text-primary-800 text-xs font-semibold px-2 py-1 rounded">
-                        {event.theme}
-                      </span>
+                      <span className="text-gray-600 font-normal"> / {event.theme}</span>
                     )}
-                  </div>
+                  </h2>
                   <p className="text-gray-600 mb-4 line-clamp-3">{event.description}</p>
                   
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center text-gray-700">
                       <span className="font-semibold mr-2">Date:</span>
-                      {format(new Date(event.eventDate), 'MMMM d, yyyy')}
+                      {formatEventDate(event.eventDate.toString())}
                     </div>
-                    <div className="flex items-center text-gray-700">
-                      <span className="font-semibold mr-2">Time:</span>
-                      {event.eventTime}
-                    </div>
-                    <div className="flex items-center text-gray-700">
-                      <span className="font-semibold mr-2">Price:</span>
-                      ${event.price.toFixed(2)} per couple
-                    </div>
-                    <div className="flex items-center text-gray-700">
-                      <span className="font-semibold mr-2">Capacity:</span>
-                      {event.capacity} people
-                    </div>
+                    {(event.priceCouple || event.priceMale || event.priceFemale) && (
+                      <div className="flex items-center text-gray-700">
+                        <span className="font-semibold mr-2">Prices:</span>
+                        <span>
+                          {event.priceCouple && `Couple: $${event.priceCouple.toFixed(2)}`}
+                          {event.priceCouple && (event.priceMale || event.priceFemale) && ', '}
+                          {event.priceMale && `Male: $${event.priceMale.toFixed(2)}`}
+                          {event.priceMale && event.priceFemale && ', '}
+                          {event.priceFemale && `Female: $${event.priceFemale.toFixed(2)}`}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <Link
