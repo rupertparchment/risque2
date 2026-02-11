@@ -6,6 +6,18 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const includeDeleted = searchParams.get('includeDeleted') === 'true'
+    const sortBy = searchParams.get('sortBy') || 'createdAt' // firstName, lastName, createdAt
+    const sortOrder = searchParams.get('sortOrder') || 'desc' // asc, desc
+
+    // Build orderBy clause
+    let orderBy: any = {}
+    if (sortBy === 'firstName') {
+      orderBy = { firstName: sortOrder }
+    } else if (sortBy === 'lastName') {
+      orderBy = { lastName: sortOrder }
+    } else {
+      orderBy = { createdAt: sortOrder }
+    }
 
     const members = await prisma.user.findMany({
       where: includeDeleted
@@ -13,7 +25,7 @@ export async function GET(request: NextRequest) {
         : {
             isDeleted: false, // Only show non-deleted members
           },
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       select: {
         id: true,
         email: true,

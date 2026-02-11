@@ -37,6 +37,8 @@ export default function AdminMembersPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showDeleted, setShowDeleted] = useState(false)
+  const [sortBy, setSortBy] = useState<string>('createdAt')
+  const [sortOrder, setSortOrder] = useState<string>('desc')
   
   // Form state
   const [formData, setFormData] = useState({
@@ -55,7 +57,11 @@ export default function AdminMembersPage() {
     try {
       setIsLoading(true)
       setError('')
-      const url = showDeleted ? '/api/admin/members?includeDeleted=true' : '/api/admin/members'
+      const params = new URLSearchParams()
+      if (showDeleted) params.append('includeDeleted', 'true')
+      params.append('sortBy', sortBy)
+      params.append('sortOrder', sortOrder)
+      const url = `/api/admin/members?${params.toString()}`
       const response = await fetch(url)
       if (!response.ok) {
         throw new Error('Failed to fetch members')
@@ -73,7 +79,7 @@ export default function AdminMembersPage() {
 
   useEffect(() => {
     fetchMembers()
-  }, [showDeleted])
+  }, [showDeleted, sortBy, sortOrder])
 
   const resetForm = () => {
     setFormData({
@@ -497,6 +503,26 @@ export default function AdminMembersPage() {
               <option value="pending">Pending</option>
               <option value="expired">Expired</option>
               <option value="cancelled">Cancelled</option>
+            </select>
+            
+            <label className="text-sm font-medium text-gray-700">Sort by:</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg"
+            >
+              <option value="createdAt">Date Joined</option>
+              <option value="firstName">First Name</option>
+              <option value="lastName">Last Name</option>
+            </select>
+            
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg"
+            >
+              <option value="asc">Ascending (A-Z)</option>
+              <option value="desc">Descending (Z-A)</option>
             </select>
             
             <div className="flex items-center gap-2">
