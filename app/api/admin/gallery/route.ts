@@ -1,24 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 
-// Log DATABASE_URL status (first 30 chars only for security)
-console.log('DATABASE_URL available:', !!process.env.DATABASE_URL)
-console.log('DATABASE_URL starts with postgres:', process.env.DATABASE_URL?.startsWith('postgresql://') || process.env.DATABASE_URL?.startsWith('postgres://'))
-console.log('DATABASE_URL first 50 chars:', process.env.DATABASE_URL?.substring(0, 50) || 'NOT SET')
-console.log('All env vars starting with DATABASE:', Object.keys(process.env).filter(k => k.includes('DATABASE')))
-
-// Create PrismaClient with explicit error handling
-let prisma: PrismaClient
-try {
-  prisma = new PrismaClient()
-} catch (error: any) {
-  console.error('Failed to create PrismaClient:', error)
-  throw new Error(`PrismaClient initialization failed: ${error.message}. DATABASE_URL: ${process.env.DATABASE_URL ? 'SET (first 30 chars: ' + process.env.DATABASE_URL.substring(0, 30) + '...)' : 'NOT SET'}`)
+// Lazy initialization of PrismaClient to ensure env vars are available
+function getPrisma() {
+  const dbUrl = process.env.DATABASE_URL
+  console.log('getPrisma() called - DATABASE_URL available:', !!dbUrl)
+  console.log('DATABASE_URL starts with postgres:', dbUrl?.startsWith('postgresql://') || dbUrl?.startsWith('postgres://'))
+  console.log('DATABASE_URL first 50 chars:', dbUrl?.substring(0, 50) || 'NOT SET')
+  
+  if (!dbUrl) {
+    throw new Error('DATABASE_URL environment variable is not set')
+  }
+  
+  if (!dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
+    throw new Error(`DATABASE_URL must start with postgresql:// or postgres://. Got: ${dbUrl.substring(0, 30)}...`)
+  }
+  
+  return new PrismaClient()
 }
 
 export async function GET(request: NextRequest) {
   try {
     console.log('GET /api/admin/gallery - Fetching images')
+    const prisma = getPrisma()
     const images = await prisma.galleryImage.findMany({
       orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
     })
@@ -47,6 +51,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const prisma = getPrisma()
     const image = await prisma.galleryImage.create({
       data: {
         title,
