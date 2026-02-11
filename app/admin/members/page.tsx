@@ -97,6 +97,17 @@ export default function AdminMembersPage() {
     setIsCreating(false)
   }
 
+  // Helper to format date for input field (handles timezone correctly)
+  const formatDateForInput = (date: Date | string | null): string => {
+    if (!date) return ''
+    const d = typeof date === 'string' ? new Date(date) : date
+    // Get local date components to avoid timezone issues
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   const handleEdit = (member: Member) => {
     setIsEditing(member)
     setIsCreating(false)
@@ -106,10 +117,10 @@ export default function AdminMembersPage() {
       firstName: member.firstName,
       lastName: member.lastName,
       phone: member.phone || '',
-      dateOfBirth: member.dateOfBirth ? format(new Date(member.dateOfBirth), 'yyyy-MM-dd') : '',
+      dateOfBirth: formatDateForInput(member.dateOfBirth),
       membershipStatus: member.membershipStatus,
-      membershipStart: member.membershipStart ? format(new Date(member.membershipStart), 'yyyy-MM-dd') : '',
-      membershipEnd: member.membershipEnd ? format(new Date(member.membershipEnd), 'yyyy-MM-dd') : '',
+      membershipStart: formatDateForInput(member.membershipStart),
+      membershipEnd: formatDateForInput(member.membershipEnd),
     })
   }
 
@@ -559,35 +570,35 @@ export default function AdminMembersPage() {
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+            <div className="overflow-x-visible">
+              <table className="w-full divide-y divide-gray-200 table-auto">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Name
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Email
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Membership Period
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Member Since
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Payments
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       RSVPs
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Joined
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -598,7 +609,7 @@ export default function AdminMembersPage() {
                       key={member.id} 
                       className={`hover:bg-gray-50 ${member.isDeleted ? 'bg-gray-100 opacity-75' : ''}`}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4">
                         <div className="text-sm font-medium text-gray-900">
                           {member.firstName} {member.lastName}
                         </div>
@@ -606,10 +617,10 @@ export default function AdminMembersPage() {
                           <div className="text-sm text-gray-500">{member.phone}</div>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{member.email}</div>
+                      <td className="px-3 py-4">
+                        <div className="text-sm text-gray-900 break-words max-w-xs">{member.email}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
                             member.membershipStatus
@@ -618,9 +629,9 @@ export default function AdminMembersPage() {
                           {member.membershipStatus}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-3 py-4 text-sm text-gray-500">
                         {member.membershipStart ? (
-                          <div>
+                          <div className="text-xs">
                             <div>Start: {format(new Date(member.membershipStart), 'MMM d, yyyy')}</div>
                             {member.membershipEnd && (
                               <div>End: {format(new Date(member.membershipEnd), 'MMM d, yyyy')}</div>
@@ -630,8 +641,8 @@ export default function AdminMembersPage() {
                           <span className="text-gray-400">Not set</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div className="font-medium">
+                      <td className="px-3 py-4 text-sm text-gray-500">
+                        <div className="font-medium text-xs">
                           {calculateMembershipDuration(member.membershipStart, member.membershipEnd)}
                         </div>
                         {member.membershipStart && (
@@ -640,16 +651,16 @@ export default function AdminMembersPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-3 py-4 text-sm text-gray-500 text-center">
                         {member._count.payments}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-3 py-4 text-sm text-gray-500 text-center">
                         {member._count.rsvps}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-3 py-4 text-sm text-gray-500">
                         {format(new Date(member.createdAt), 'MMM d, yyyy')}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <td className="px-3 py-4 text-sm font-medium">
                         <div className="flex gap-2">
                           {!member.isDeleted ? (
                             <>

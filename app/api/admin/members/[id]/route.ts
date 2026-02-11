@@ -22,9 +22,16 @@ export async function PUT(
 
     // Helper function to parse date strings as local dates (not UTC)
     const parseLocalDate = (dateString: string): Date => {
+      if (!dateString || dateString.trim() === '') {
+        throw new Error('Empty date string')
+      }
       // Parse YYYY-MM-DD format as local date (not UTC)
       const [year, month, day] = dateString.split('-').map(Number)
-      return new Date(year, month - 1, day) // month is 0-indexed in JS Date
+      if (isNaN(year) || isNaN(month) || isNaN(day)) {
+        throw new Error('Invalid date format')
+      }
+      // Create date at local midnight to avoid timezone shifts
+      return new Date(year, month - 1, day, 0, 0, 0, 0) // month is 0-indexed in JS Date
     }
 
     const updateData: any = {
@@ -32,10 +39,10 @@ export async function PUT(
       firstName,
       lastName,
       phone: phone || null,
-      dateOfBirth: dateOfBirth ? parseLocalDate(dateOfBirth) : null,
+      dateOfBirth: dateOfBirth && dateOfBirth.trim() ? parseLocalDate(dateOfBirth) : null,
       membershipStatus,
-      membershipStart: membershipStart ? parseLocalDate(membershipStart) : null,
-      membershipEnd: membershipEnd ? parseLocalDate(membershipEnd) : null,
+      membershipStart: membershipStart && membershipStart.trim() ? parseLocalDate(membershipStart) : null,
+      membershipEnd: membershipEnd && membershipEnd.trim() ? parseLocalDate(membershipEnd) : null,
     }
 
     // Only update password if provided
