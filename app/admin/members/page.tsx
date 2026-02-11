@@ -501,11 +501,67 @@ export default function AdminMembersPage() {
                     onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   />
-                  {formData.dateOfBirth && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Current value: {formData.dateOfBirth}
-                    </p>
-                  )}
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Address Line 1
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.addressLine1}
+                    onChange={(e) => setFormData({ ...formData, addressLine1: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Street address"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Address Line 2
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.addressLine2}
+                    onChange={(e) => setFormData({ ...formData, addressLine2: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Apartment, suite, etc. (optional)"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    State
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.state}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    maxLength={2}
+                    placeholder="XX"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ZIP Code
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.zip}
+                    onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    maxLength={10}
+                    placeholder="12345"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
