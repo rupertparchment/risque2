@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 
@@ -313,7 +313,7 @@ export default function AdminMembersPage(): JSX.Element {
     : membersToShow.filter(m => m.membershipStatus === filterStatus)
   
   // Filter by search query (search in name, email, phone)
-  const filteredMembers = React.useMemo(() => {
+  const filteredMembers = useMemo(() => {
     if (searchQuery.trim() === '') {
       return statusFilteredMembers
     }
