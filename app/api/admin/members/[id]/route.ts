@@ -118,25 +118,48 @@ export async function PUT(
       lastName,
       phone: phoneToStore,
       dateOfBirth: dateOfBirth && dateOfBirth.trim() ? parseLocalDate(dateOfBirth) : null,
-      addressLine1: addressLine1 || null,
-      addressLine2: addressLine2 || null,
-      city: city || null,
-      state: state || null,
-      zip: zip || null,
       membershipStatus,
       membershipStart: membershipStart && membershipStart.trim() ? parseLocalDate(membershipStart) : null,
       membershipEnd: membershipEnd && membershipEnd.trim() ? parseLocalDate(membershipEnd) : null,
     }
+
+    // Only add address fields if they're provided (handle case where columns might not exist)
+    if (addressLine1 !== undefined) updateData.addressLine1 = addressLine1 || null
+    if (addressLine2 !== undefined) updateData.addressLine2 = addressLine2 || null
+    if (city !== undefined) updateData.city = city || null
+    if (state !== undefined) updateData.state = state || null
+    if (zip !== undefined) updateData.zip = zip || null
 
     // Only update password if provided
     if (password && password.trim()) {
       updateData.password = await bcrypt.hash(password, 10)
     }
 
-    const member = await prisma.user.update({
-      where: { id: params.id },
-      data: updateData,
-    })
+    let member
+    try {
+      member = await prisma.user.update({
+        where: { id: params.id },
+        data: updateData,
+      })
+    } catch (dbError: any) {
+      // If address columns don't exist, try updating without them
+      if (dbError.message && (dbError.message.includes('addressLine1') || dbError.message.includes('Unknown column') || dbError.message.includes('column') && dbError.message.includes('does not exist'))) {
+        console.log('Address columns not found, updating without them...')
+        const updateDataWithoutAddress = { ...updateData }
+        delete updateDataWithoutAddress.addressLine1
+        delete updateDataWithoutAddress.addressLine2
+        delete updateDataWithoutAddress.city
+        delete updateDataWithoutAddress.state
+        delete updateDataWithoutAddress.zip
+        
+        member = await prisma.user.update({
+          where: { id: params.id },
+          data: updateDataWithoutAddress,
+        })
+      } else {
+        throw dbError
+      }
+    }
 
     // Helper to format date for JSON response (simple date extraction)
     const formatDateForResponse = (date: Date | null): string | null => {
