@@ -315,12 +315,12 @@ export default function AdminMembersPage() {
   // Filter by search query (search in name, email, phone)
   const filteredMembers = searchQuery.trim() === ''
     ? statusFilteredMembers
-    : statusFilteredMembers.filter(m => {
+    : statusFilteredMembers.filter((m) => {
         const query = searchQuery.toLowerCase()
         const fullName = `${m.firstName} ${m.lastName}`.toLowerCase()
         const email = (m.email || '').toLowerCase()
-        const phone = formatPhoneNumber(m.phone).toLowerCase()
-        return fullName.includes(query) || email.includes(query) || phone.includes(query)
+        const phoneFormatted = formatPhoneNumber(m.phone).toLowerCase()
+        return fullName.includes(query) || email.includes(query) || phoneFormatted.includes(query)
       })
 
   const getStatusColor = (status: string) => {
