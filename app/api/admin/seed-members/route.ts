@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
       created: createdMembers.length,
       skipped: skippedMembers.length,
       members: createdMembers,
-      skipped: skippedMembers.length > 0 ? skippedMembers : undefined,
+      skippedMembers: skippedMembers.length > 0 ? skippedMembers : undefined,
       errors: errors.length > 0 ? errors : undefined,
     })
   } catch (error: any) {
